@@ -5,8 +5,8 @@ dependencies:
     specifier: ^2.1.0
     version: 2.1.0(vue@3.2.47)
   '@runikaros/shared':
-    specifier: ^0.0.2
-    version: 0.0.2(vue-router@4.2.2)(vue@3.2.47)
+    specifier: ^0.0.3
+    version: 0.0.3(vue-router@4.2.2)(vue@3.2.47)
   vue:
     specifier: ^3.2.47
     version: 3.2.47
@@ -577,8 +577,8 @@ packages:
       '@jridgewell/sourcemap-codec': 1.4.14
     dev: true
 
-  /@runikaros/shared@0.0.2(vue-router@4.2.2)(vue@3.2.47):
-    resolution: {integrity: sha512-qBy30zH4EQehAv5wekuMOwWUgagh+LGNojdjv8uVBeDELMjMyLpYXBK9XM1/HFdKh8Li3kP6lChWcM5YNezJxw==}
+  /@runikaros/shared@0.0.3(vue-router@4.2.2)(vue@3.2.47):
+    resolution: {integrity: sha512-eawK5qPKkHJEL8nygShQQMPck0Bwt+CiBogVnSXVdMhIMBbycSafY56XbWYeotoKJiY0PKSZwHRbyDdkhZuyDg==}
     peerDependencies:
       vue: ^3.2.37
       vue-router: ^4.1.6

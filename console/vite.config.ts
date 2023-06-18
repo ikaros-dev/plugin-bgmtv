@@ -4,7 +4,7 @@ import Vue from "@vitejs/plugin-vue";
 import VueJsx from "@vitejs/plugin-vue-jsx";
 
 // Current plugin entry name value must eq plugin.yaml name value.
-const pluginEntryName = "PluginStarter";
+const pluginEntryName = "PluginBgmTv";
 // https://vitejs.dev/config/
 export default defineConfig({
   define: {

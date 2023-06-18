@@ -1,4 +1,4 @@
-# Ikaros plugin starter console
+# Ikaros plugin bgmtv
 
 ```
 pnpm install
