@@ -5,12 +5,12 @@ name: PluginBgmTv
 clazz: run.ikaros.plugin.bgmtv.BgmTvPlugin
 # plugin 'version' is a valid semantic version string (see semver.org).
 version: 1.0-SNAPSHOT
-requires: ">0.2.1"
+requires: ">=0.2.1"
 author:
   name: Ikaros OSS Team
   website: https://github.com/ikaros-dev
-logo: https://github.com/ikaros-dev/ikaros/blob/master/assets/logo.png
+logo: https://ikaros.run/logo.png
 homepage: https://github.com/ikaros-dev/plugin-bgmtv
-displayName: "插件快速开始模板"
-description: "这是一个插件快速开始模板"
+displayName: "番组计划"
+description: "番组计划(bgm.tv)插件，拓展条目和集合同步等功能。"
 license: "AGPL-3.0"

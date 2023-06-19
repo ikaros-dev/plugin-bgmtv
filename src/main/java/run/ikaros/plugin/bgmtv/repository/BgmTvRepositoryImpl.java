@@ -1,6 +1,9 @@
 package run.ikaros.plugin.bgmtv.repository;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
@@ -69,20 +72,11 @@ public class BgmTvRepositoryImpl implements BgmTvRepository {
                     new HttpEntity<>(null, headers), String.class)
                 .getBody();
             Map map = JsonUtils.json2obj(result, Map.class);
-            List infoboxList = (List) map.remove("infobox");
+            Object infobox =  map.remove("infobox");
             BgmTvSubject bgmTvSubject =
                 JsonUtils.json2obj(JsonUtils.obj2Json(map), BgmTvSubject.class);
-            StringBuilder sb = new StringBuilder();
-            for (Object o : infoboxList) {
-                Map m = (Map) o;
-                m.forEach((k, v) -> {
-                    sb.append(k)
-                        .append(":")
-                        .append(v.toString())
-                        .append("\n");
-                });
-            }
-            bgmTvSubject.setInfobox(sb.toString());
+
+            bgmTvSubject.setInfobox(convertInfoBox(JsonUtils.obj2Json(infobox)));
             return bgmTvSubject;
         } catch (HttpClientErrorException exception) {
             if (exception.getStatusCode() == HttpStatus.NOT_FOUND) {
@@ -90,7 +84,38 @@ public class BgmTvRepositoryImpl implements BgmTvRepository {
                 return null;
             }
             throw exception;
+        } catch (JsonProcessingException e) {
+            LOGGER.error("convert infobox exception for subjectId={}", subjectId, e);
+            throw new RuntimeException(e);
         }
+    }
+
+    private String convertInfoBox(String originalStr) throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode jsonNode = objectMapper.readTree(originalStr);
+
+        StringBuilder result = new StringBuilder();
+        for (JsonNode node : jsonNode) {
+            String key = node.get("key").asText();
+            JsonNode valueNode = node.get("value");
+            String value;
+
+            if (valueNode.isArray()) {
+                StringBuilder valueBuilder = new StringBuilder();
+                for (JsonNode subNode : valueNode) {
+                    if (subNode.has("v")) {
+                        valueBuilder.append(subNode.get("v").asText()).append(" ");
+                    }
+                }
+                value = valueBuilder.toString().trim();
+            } else {
+                value = valueNode.asText();
+            }
+
+            String line = key + ": " + value;
+            result.append(line).append(System.lineSeparator());
+        }
+        return result.toString();
     }
 
     @Override

@@ -77,28 +77,9 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
             .setSummary(bgmTvSubject.getSummary())
             .setNsfw(bgmTvSubject.getNsfw())
             .setAirTime(convertAirTime(bgmTvSubject.getDate()))
-            .setImage(convertImage(bgmTvSubject.getImages()));
+            .setCover(bgmTvSubject.getImages().getLarge());
     }
 
-    //private String convertInfoBox(List<BgmTvInfo> infobox) {
-    //    StringBuilder sb = new StringBuilder();
-    //    for (BgmTvInfo bgmTvInfo : infobox) {
-    //        sb.append(bgmTvInfo.getKey())
-    //            .append(":")
-    //            .append(bgmTvInfo.getValue())
-    //            .append("\n");
-    //    }
-    //    return sb.toString();
-    //}
-
-    private SubjectImage convertImage(BgmTvImages images) {
-        return new SubjectImage()
-            .setLarge(images.getLarge())
-            .setCommon(images.getCommon())
-            .setMedium(images.getMedium())
-            .setSmall(images.getSmall())
-            .setGrid(images.getGrid());
-    }
 
     private LocalDateTime convertAirTime(String date) {
         final DateTimeFormatter formatter = new DateTimeFormatterBuilder()
