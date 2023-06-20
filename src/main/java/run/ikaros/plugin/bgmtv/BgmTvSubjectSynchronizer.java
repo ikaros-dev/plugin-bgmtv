@@ -2,18 +2,24 @@ package run.ikaros.plugin.bgmtv;
 
 import org.pf4j.Extension;
 import org.springframework.util.Assert;
+import org.springframework.util.NumberUtils;
+import reactor.core.publisher.Mono;
 import run.ikaros.api.core.subject.*;
 import run.ikaros.api.store.enums.SubjectSyncPlatform;
 import run.ikaros.api.store.enums.SubjectType;
+import run.ikaros.plugin.bgmtv.constants.BgmTvApiConst;
 import run.ikaros.plugin.bgmtv.model.*;
 import run.ikaros.plugin.bgmtv.repository.BgmTvRepository;
 import run.ikaros.plugin.bgmtv.repository.BgmTvRepositoryImpl;
 
+import java.io.IOException;
+import java.net.InetAddress;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,10 +34,28 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
         return SubjectSyncPlatform.BGM_TV;
     }
 
+    private boolean assertDomainReachable(String domain) {
+        try {
+            InetAddress inetAddress = InetAddress.getByName(domain);
+            return inetAddress.isReachable(5000); // 设置超时时间为5秒
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
     @Override
     public Subject pull(String id) {
         Assert.hasText(id, "bgmtv id must has text.");
         bgmTvRepository.refreshHttpHeaders(null);
+
+        log.info("Verifying that the domain name is accessible, please wait...");
+        boolean reachable = assertDomainReachable(BgmTvApiConst.BASE);
+        if (!reachable) {
+            log.warn("The operation failed because the current domain name is not accessible "
+                + "for domain: [{}].", BgmTvApiConst.BASE);
+            throw new DomainNotAccessException(
+                "Current domain can not access: " + BgmTvApiConst.BASE);
+        }
 
         Subject subject =
             convert(Objects.requireNonNull(bgmTvRepository.getSubject(Long.valueOf(id))));
