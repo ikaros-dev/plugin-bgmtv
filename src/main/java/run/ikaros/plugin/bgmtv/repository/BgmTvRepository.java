@@ -15,6 +15,8 @@ import java.util.List;
  */
 public interface BgmTvRepository {
 
+    boolean assertDomainReachable();
+
     void setRestTemplate(@Nonnull RestTemplate restTemplate);
 
     void refreshHttpHeaders(@Nullable String accessToken);

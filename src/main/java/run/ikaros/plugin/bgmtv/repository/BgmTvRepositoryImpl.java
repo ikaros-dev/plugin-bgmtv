@@ -36,6 +36,19 @@ public class BgmTvRepositoryImpl implements BgmTvRepository {
     String REST_TEMPLATE_USER_AGENT = REPO_GITHUB_NAME + " (" + HOME_PAGE + ")";
     String TOKEN_PREFIX = "Bearer ";
 
+    @Override
+    public boolean assertDomainReachable() {
+        refreshHttpHeaders(null);
+        try {
+            restTemplate
+                .exchange(BgmTvApiConst.BASE, HttpMethod.GET,
+                    new HttpEntity<>(null, headers), Map.class);
+            return true;
+        } catch (HttpClientErrorException exception) {
+            return exception.getStatusCode() == HttpStatus.NOT_FOUND;
+        }
+    }
+
     public void setRestTemplate(
         @Nonnull RestTemplate restTemplate) {
         Assert.notNull(restTemplate, "'restTemplate' must not null.");
@@ -72,7 +85,7 @@ public class BgmTvRepositoryImpl implements BgmTvRepository {
                     new HttpEntity<>(null, headers), String.class)
                 .getBody();
             Map map = JsonUtils.json2obj(result, Map.class);
-            Object infobox =  map.remove("infobox");
+            Object infobox = map.remove("infobox");
             BgmTvSubject bgmTvSubject =
                 JsonUtils.json2obj(JsonUtils.obj2Json(map), BgmTvSubject.class);
 

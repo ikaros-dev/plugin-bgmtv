@@ -34,14 +34,6 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
         return SubjectSyncPlatform.BGM_TV;
     }
 
-    private boolean assertDomainReachable(String domain) {
-        try {
-            InetAddress inetAddress = InetAddress.getByName(domain);
-            return inetAddress.isReachable(5000); // 设置超时时间为5秒
-        } catch (IOException e) {
-            return false;
-        }
-    }
 
     @Override
     public Subject pull(String id) {
@@ -49,7 +41,7 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
         bgmTvRepository.refreshHttpHeaders(null);
 
         log.info("Verifying that the domain name is accessible, please wait...");
-        boolean reachable = assertDomainReachable(BgmTvApiConst.BASE);
+        boolean reachable = bgmTvRepository.assertDomainReachable();
         if (!reachable) {
             log.warn("The operation failed because the current domain name is not accessible "
                 + "for domain: [{}].", BgmTvApiConst.BASE);
