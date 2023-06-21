@@ -9,32 +9,41 @@ import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.web.client.ClientHttpRequestFactorySettings;
 import org.springframework.http.*;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.util.Assert;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import run.ikaros.plugin.bgmtv.constants.BgmTvApiConst;
 import run.ikaros.plugin.bgmtv.model.*;
 import run.ikaros.plugin.bgmtv.utils.BeanUtils;
 import run.ikaros.plugin.bgmtv.utils.JsonUtils;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static run.ikaros.plugin.bgmtv.constants.BgmTvConst.REST_TEMPLATE_USER_AGENT;
+import static run.ikaros.plugin.bgmtv.constants.BgmTvConst.TOKEN_PREFIX;
+
 public class BgmTvRepositoryImpl implements BgmTvRepository {
     private static final Logger LOGGER = LoggerFactory.getLogger(BgmTvRepositoryImpl.class);
-    private RestTemplate restTemplate = new RestTemplate();
+    private RestTemplate restTemplate = getRestTemplate();
+
+    private static RestTemplate getRestTemplate() {
+        HttpComponentsClientHttpRequestFactory httpRequestFactory = new HttpComponentsClientHttpRequestFactory();
+        httpRequestFactory.setConnectionRequestTimeout(10000);//获取链接超时时间
+        httpRequestFactory.setConnectTimeout(10000);//指客户端和服务器建立连接的timeout
+        return new RestTemplate(httpRequestFactory);
+    }
+
     private final HttpHeaders headers = new HttpHeaders();
-
-    String HOME_PAGE = "https://ikaros.run";
-    String REPO_GITHUB_NAME = "ikaros-dev/ikaros";
-
-    // 当前 User-Agent格式 ikaros-dev/ikaros (https://ikaros.run)
-    String REST_TEMPLATE_USER_AGENT = REPO_GITHUB_NAME + " (" + HOME_PAGE + ")";
-    String TOKEN_PREFIX = "Bearer ";
 
     @Override
     public boolean assertDomainReachable() {

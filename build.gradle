@@ -1,6 +1,7 @@
 plugins {
     id "com.github.node-gradle.node" version "3.3.0"
     id 'java'
+    id 'java-library'
 }
 
 repositories {
@@ -14,7 +15,6 @@ ext {
     springContext = '6.0.3'
     pf4j = '3.8.0'
     lombok = '1.18.24'
-    libFilePath = 'lib/api-0.2.1.jar'
 }
 
 
@@ -25,10 +25,9 @@ dependencies {
     compileOnly "io.projectreactor:reactor-core:3.5.1"
     compileOnly "org.springframework:spring-webflux:6.0.3"
     compileOnly "org.springdoc:springdoc-openapi-starter-webflux-api:2.0.2"
-    compileOnly files(libFilePath)
-
     compileOnly 'jakarta.annotation:jakarta.annotation-api:2.1.1'
     compileOnly 'org.springframework.retry:spring-retry:2.0.2'
+    compileOnly files("lib/api-0.2.1.jar")
 
     // lombok
     compileOnly "org.projectlombok:lombok:$lombok"

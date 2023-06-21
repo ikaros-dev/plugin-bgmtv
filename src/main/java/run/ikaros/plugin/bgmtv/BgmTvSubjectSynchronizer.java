@@ -1,25 +1,27 @@
 package run.ikaros.plugin.bgmtv;
 
+import org.apache.commons.lang3.StringUtils;
 import org.pf4j.Extension;
 import org.springframework.util.Assert;
-import org.springframework.util.NumberUtils;
-import reactor.core.publisher.Mono;
-import run.ikaros.api.core.subject.*;
+import run.ikaros.api.core.subject.Episode;
+import run.ikaros.api.core.subject.Subject;
+import run.ikaros.api.core.subject.SubjectSync;
+import run.ikaros.api.core.subject.SubjectSynchronizer;
 import run.ikaros.api.store.enums.SubjectSyncPlatform;
 import run.ikaros.api.store.enums.SubjectType;
 import run.ikaros.plugin.bgmtv.constants.BgmTvApiConst;
-import run.ikaros.plugin.bgmtv.model.*;
+import run.ikaros.plugin.bgmtv.model.BgmTvEpisode;
+import run.ikaros.plugin.bgmtv.model.BgmTvEpisodeType;
+import run.ikaros.plugin.bgmtv.model.BgmTvSubject;
+import run.ikaros.plugin.bgmtv.model.BgmTvSubjectType;
 import run.ikaros.plugin.bgmtv.repository.BgmTvRepository;
 import run.ikaros.plugin.bgmtv.repository.BgmTvRepositoryImpl;
 
-import java.io.IOException;
-import java.net.InetAddress;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 
@@ -41,6 +43,7 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
         bgmTvRepository.refreshHttpHeaders(null);
 
         log.info("Verifying that the domain name is accessible, please wait...");
+        // 应该设置个超时时间，防止一直阻塞在这
         boolean reachable = bgmTvRepository.assertDomainReachable();
         if (!reachable) {
             log.warn("The operation failed because the current domain name is not accessible "
@@ -51,6 +54,11 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
 
         Subject subject =
             convert(Objects.requireNonNull(bgmTvRepository.getSubject(Long.valueOf(id))));
+        if(Objects.isNull(subject)) {
+            log.warn("Pull subject is null, skip operate.");
+            return null;
+        }
+
         log.info("Pull subject:[{}] by platform:[{}] and id:[{}]",
             subject.getName(), getSyncPlatform().name(), id);
 
@@ -84,6 +92,9 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
     }
 
     private Subject convert(BgmTvSubject bgmTvSubject) {
+        if (Objects.isNull(bgmTvSubject)) {
+            return null;
+        }
         return new Subject()
             .setId(Long.valueOf(String.valueOf(bgmTvSubject.getId())))
             .setType(convertType(bgmTvSubject.getType()))
@@ -98,6 +109,9 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
 
 
     private LocalDateTime convertAirTime(String date) {
+        if (StringUtils.isBlank(date)) {
+            return null;
+        }
         final DateTimeFormatter formatter = new DateTimeFormatterBuilder()
             .appendPattern("yyyy-MM-dd")
             .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
@@ -109,6 +123,9 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
     }
 
     private SubjectType convertType(BgmTvSubjectType type) {
+        if (Objects.isNull(type)) {
+            return SubjectType.OTHER;
+        }
         switch (type) {
             case BOOK -> {
                 return SubjectType.NOVEL;
