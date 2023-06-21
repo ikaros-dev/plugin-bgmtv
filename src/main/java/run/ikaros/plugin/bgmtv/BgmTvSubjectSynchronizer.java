@@ -43,7 +43,6 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
         bgmTvRepository.refreshHttpHeaders(null);
 
         log.info("Verifying that the domain name is accessible, please wait...");
-        // 应该设置个超时时间，防止一直阻塞在这
         boolean reachable = bgmTvRepository.assertDomainReachable();
         if (!reachable) {
             log.warn("The operation failed because the current domain name is not accessible "

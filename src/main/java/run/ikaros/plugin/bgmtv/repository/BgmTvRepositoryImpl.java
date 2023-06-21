@@ -38,8 +38,8 @@ public class BgmTvRepositoryImpl implements BgmTvRepository {
 
     private static RestTemplate getRestTemplate() {
         HttpComponentsClientHttpRequestFactory httpRequestFactory = new HttpComponentsClientHttpRequestFactory();
-        httpRequestFactory.setConnectionRequestTimeout(10000);//获取链接超时时间
-        httpRequestFactory.setConnectTimeout(10000);//指客户端和服务器建立连接的timeout
+        httpRequestFactory.setConnectionRequestTimeout(3000);//获取链接超时时间
+        httpRequestFactory.setConnectTimeout(3000);//指客户端和服务器建立连接的timeout
         return new RestTemplate(httpRequestFactory);
     }
 
