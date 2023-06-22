@@ -7,40 +7,100 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.boot.web.client.ClientHttpRequestFactorySettings;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.http.*;
-import org.springframework.http.client.ClientHttpRequestFactory;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
-import org.springframework.util.unit.DataSize;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Mono;
+import run.ikaros.api.core.setting.ConfigMap;
+import run.ikaros.api.custom.ReactiveCustomClient;
+import run.ikaros.api.exception.NotFoundException;
 import run.ikaros.plugin.bgmtv.constants.BgmTvApiConst;
 import run.ikaros.plugin.bgmtv.model.*;
 import run.ikaros.plugin.bgmtv.utils.BeanUtils;
 import run.ikaros.plugin.bgmtv.utils.JsonUtils;
+import run.ikaros.plugin.bgmtv.utils.RestTemplateUtils;
 
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 
 import static run.ikaros.plugin.bgmtv.constants.BgmTvConst.REST_TEMPLATE_USER_AGENT;
 import static run.ikaros.plugin.bgmtv.constants.BgmTvConst.TOKEN_PREFIX;
 
-public class BgmTvRepositoryImpl implements BgmTvRepository {
-    private static final Logger LOGGER = LoggerFactory.getLogger(BgmTvRepositoryImpl.class);
-    private RestTemplate restTemplate = getRestTemplate();
+@Slf4j
+@Component
+public class BgmTvRepositoryImpl
+    implements BgmTvRepository, InitializingBean {
+    private RestTemplate restTemplate;
+    private final ReactiveCustomClient reactiveCustomClient;
 
-    private static RestTemplate getRestTemplate() {
-        HttpComponentsClientHttpRequestFactory httpRequestFactory = new HttpComponentsClientHttpRequestFactory();
-        httpRequestFactory.setConnectionRequestTimeout(3000);//获取链接超时时间
-        httpRequestFactory.setConnectTimeout(3000);//指客户端和服务器建立连接的timeout
-        return new RestTemplate(httpRequestFactory);
+    public BgmTvRepositoryImpl(ReactiveCustomClient reactiveCustomClient) {
+        this.reactiveCustomClient = reactiveCustomClient;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        reactiveCustomClient.findOne(ConfigMap.class, "PluginBgmTv")
+            .onErrorResume(NotFoundException.class, e -> Mono.empty())
+            .subscribe(configMap -> {
+                log.info("init rest temp when app ready and config exits, configmap: {}",
+                    configMap);
+                initRestTemplate(configMap);
+                refreshHttpHeaders(null);
+            });
+    }
+
+    public void initRestTemplate(ConfigMap configMap) {
+        if (configMap == null || configMap.getData() == null) {
+            restTemplate = RestTemplateUtils.buildRestTemplate(3000, 3000);
+            log.info("config rest template by no proxy.");
+            return;
+        }
+        Map<String, String> map = configMap.getData();
+        String enableProxy = map.get("enableProxy");
+        if (StringUtils.isBlank(enableProxy)) {
+            restTemplate = RestTemplateUtils.buildRestTemplate(3000, 3000);
+            log.info("config rest template by no proxy.");
+            return;
+        }
+        String proxyType = map.get("proxyType");
+        String host = map.get("host");
+        String port = map.get("port");
+        if (StringUtils.isNotBlank(enableProxy)
+            && Boolean.parseBoolean(enableProxy)
+            && StringUtils.isNotBlank(proxyType)
+            && StringUtils.isNotBlank(host)
+            && StringUtils.isNotBlank(port)) {
+            InetSocketAddress inetSocketAddress =
+                new InetSocketAddress(host, Integer.parseInt(port));
+            switch (proxyType) {
+                case "http" -> {
+                    Proxy proxy = new Proxy(Proxy.Type.HTTP, inetSocketAddress);
+                    restTemplate =
+                        RestTemplateUtils.buildProxyRestTemplate(proxy, 3000, 3000);
+                    log.info("config rest template by [{}://{}:{}]", proxyType, host, port);
+                }
+                case "socks" -> {
+                    Proxy proxy = new Proxy(Proxy.Type.SOCKS, inetSocketAddress);
+                    restTemplate =
+                        RestTemplateUtils.buildProxyRestTemplate(proxy, 3000, 3000);
+                    log.info("config rest template by [{}://{}:{}]", proxyType, host, port);
+                }
+                default -> {
+                    restTemplate = RestTemplateUtils.buildRestTemplate(3000, 3000);
+                    log.info("config rest template by no proxy.");
+                }
+            }
+        }
     }
 
     private final HttpHeaders headers = new HttpHeaders();
@@ -71,12 +131,13 @@ public class BgmTvRepositoryImpl implements BgmTvRepository {
      */
     @Override
     public void refreshHttpHeaders(@Nullable String accessToken) {
+        log.info("refresh rest template headers...");
         headers.clear();
         headers.set(HttpHeaders.USER_AGENT, REST_TEMPLATE_USER_AGENT);
         headers.set(HttpHeaders.COOKIE, "chii_searchDateLine=0");
         headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
         if (StringUtils.isNotBlank(accessToken)) {
-            LOGGER.debug("update http head access token");
+            log.info("update http head access token");
             headers.set(HttpHeaders.AUTHORIZATION, TOKEN_PREFIX + accessToken);
         }
     }
@@ -102,12 +163,12 @@ public class BgmTvRepositoryImpl implements BgmTvRepository {
             return bgmTvSubject;
         } catch (HttpClientErrorException exception) {
             if (exception.getStatusCode() == HttpStatus.NOT_FOUND) {
-                LOGGER.warn("subject not found for subjectId={}", subjectId);
+                log.warn("subject not found for subjectId={}", subjectId);
                 return null;
             }
             throw exception;
         } catch (JsonProcessingException e) {
-            LOGGER.error("convert infobox exception for subjectId={}", subjectId, e);
+            log.error("convert infobox exception for subjectId={}", subjectId, e);
             throw new RuntimeException(e);
         }
     }
@@ -280,7 +341,7 @@ public class BgmTvRepositoryImpl implements BgmTvRepository {
     //     optionService.findOptionValueByCategoryAndKey(OptionCategory.BGMTV,
     //         OptionBgmTv.ACCESS_TOKEN.name());
     // if (tokenOptionEntity == null || StringUtils.isBlank(tokenOptionEntity.getValue())) {
-    //     LOGGER.warn("current not set bgmtv access token");
+    //     log.warn("current not set bgmtv access token");
     // } else {
     //     refreshHttpHeaders(tokenOptionEntity.getValue());
     // }

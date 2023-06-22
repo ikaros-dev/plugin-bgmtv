@@ -5,6 +5,7 @@ import jakarta.annotation.Nullable;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.util.Assert;
 import org.springframework.web.client.RestTemplate;
+import run.ikaros.api.core.setting.ConfigMap;
 import run.ikaros.plugin.bgmtv.model.*;
 
 import java.util.List;
@@ -18,6 +19,8 @@ public interface BgmTvRepository {
     boolean assertDomainReachable();
 
     void setRestTemplate(@Nonnull RestTemplate restTemplate);
+
+    void initRestTemplate(ConfigMap configMap);
 
     void refreshHttpHeaders(@Nullable String accessToken);
 

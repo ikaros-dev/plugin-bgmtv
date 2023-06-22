@@ -2,11 +2,19 @@ package run.ikaros.plugin.bgmtv;
 
 import org.apache.commons.lang3.StringUtils;
 import org.pf4j.Extension;
+import org.springframework.core.io.buffer.DataBufferFactory;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.util.Assert;
+import reactor.core.publisher.Mono;
+import run.ikaros.api.core.file.File;
+import run.ikaros.api.core.file.FileConst;
+import run.ikaros.api.core.file.FileOperate;
 import run.ikaros.api.core.subject.Episode;
 import run.ikaros.api.core.subject.Subject;
 import run.ikaros.api.core.subject.SubjectSync;
 import run.ikaros.api.core.subject.SubjectSynchronizer;
+import run.ikaros.api.infra.utils.FileUtils;
+import run.ikaros.api.store.entity.FileEntity;
 import run.ikaros.api.store.enums.SubjectSyncPlatform;
 import run.ikaros.api.store.enums.SubjectType;
 import run.ikaros.plugin.bgmtv.constants.BgmTvApiConst;
@@ -15,8 +23,8 @@ import run.ikaros.plugin.bgmtv.model.BgmTvEpisodeType;
 import run.ikaros.plugin.bgmtv.model.BgmTvSubject;
 import run.ikaros.plugin.bgmtv.model.BgmTvSubjectType;
 import run.ikaros.plugin.bgmtv.repository.BgmTvRepository;
-import run.ikaros.plugin.bgmtv.repository.BgmTvRepositoryImpl;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -29,7 +37,13 @@ import lombok.extern.slf4j.Slf4j;
 @Extension
 public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
 
-    private BgmTvRepository bgmTvRepository = new BgmTvRepositoryImpl();
+    private final BgmTvRepository bgmTvRepository;
+    private final FileOperate fileOperate;
+
+    public BgmTvSubjectSynchronizer(BgmTvRepository bgmTvRepository, FileOperate fileOperate) {
+        this.bgmTvRepository = bgmTvRepository;
+        this.fileOperate = fileOperate;
+    }
 
     @Override
     public SubjectSyncPlatform getSyncPlatform() {
@@ -53,7 +67,7 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
 
         Subject subject =
             convert(Objects.requireNonNull(bgmTvRepository.getSubject(Long.valueOf(id))));
-        if(Objects.isNull(subject)) {
+        if (Objects.isNull(subject)) {
             log.warn("Pull subject is null, skip operate.");
             return null;
         }
@@ -76,6 +90,21 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
                 .setSyncTime(LocalDateTime.now())
                 .setPlatform(getSyncPlatform())
                 .setPlatformId(id)));
+
+        // download cover image and update url
+        if (StringUtils.isNotBlank(subject.getCover())
+            && subject.getCover().startsWith("http")) {
+            String coverUrl = subject.getCover();
+            byte[] bytes = bgmTvRepository.downloadCover(coverUrl);
+            DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
+            String url = fileOperate.upload(FileUtils.parseFileName(coverUrl),
+                    Mono.just(dataBufferFactory.wrap(bytes)).flux(), FileConst.POLICY_LOCAL)
+                .map(File::entity)
+                .map(FileEntity::getUrl)
+                .doOnSuccess(u -> log.info("Pull cover for url: [{}].", u))
+                .block(Duration.ofSeconds(5));
+            subject.setCover(url);
+        }
         return subject;
     }
 
