@@ -66,7 +66,7 @@ public class BgmTvRepositoryImpl
             return;
         }
         Map<String, String> map = configMap.getData();
-        String enableProxy = map.get("enableProxy");
+        String enableProxy = String.valueOf(map.get("enableProxy"));
         if (StringUtils.isBlank(enableProxy)) {
             restTemplate = RestTemplateUtils.buildRestTemplate(3000, 3000);
             log.info("config rest template by no proxy.");
