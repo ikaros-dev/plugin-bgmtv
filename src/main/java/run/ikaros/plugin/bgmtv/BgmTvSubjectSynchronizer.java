@@ -56,17 +56,8 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
         Assert.hasText(id, "bgmtv id must has text.");
         bgmTvRepository.refreshHttpHeaders(null);
 
-        log.info("Verifying that the domain name is accessible, please wait...");
-        boolean reachable = bgmTvRepository.assertDomainReachable();
-        if (!reachable) {
-            log.warn("The operation failed because the current domain name is not accessible "
-                + "for domain: [{}].", BgmTvApiConst.BASE);
-            throw new DomainNotAccessException(
-                "Current domain can not access: " + BgmTvApiConst.BASE);
-        }
-
         BgmTvSubject bgmTvSubject = bgmTvRepository.getSubject(Long.valueOf(id));
-        if(bgmTvSubject == null) {
+        if(bgmTvSubject == null || bgmTvSubject.getId() == null) {
             log.warn("Pull subject is null, skip operate.");
             return null;
         }

@@ -8,8 +8,6 @@ import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.ApplicationListener;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
@@ -20,6 +18,7 @@ import reactor.core.publisher.Mono;
 import run.ikaros.api.core.setting.ConfigMap;
 import run.ikaros.api.custom.ReactiveCustomClient;
 import run.ikaros.api.exception.NotFoundException;
+import run.ikaros.plugin.bgmtv.DomainNotAccessException;
 import run.ikaros.plugin.bgmtv.constants.BgmTvApiConst;
 import run.ikaros.plugin.bgmtv.model.*;
 import run.ikaros.plugin.bgmtv.utils.BeanUtils;
@@ -57,10 +56,19 @@ public class BgmTvRepositoryImpl
                     configMap);
                 initRestTemplate(configMap);
                 String token = null;
-                if(Objects.nonNull(configMap.getData())) {
+                if (Objects.nonNull(configMap.getData())) {
                     token = configMap.getData().get("token");
                 }
                 refreshHttpHeaders(token);
+
+                log.info("Verifying that the domain name is accessible, please wait...");
+                boolean reachable = assertDomainReachable();
+                if (!reachable) {
+                    log.warn("The operation failed because the current domain name is not accessible "
+                        + "for domain: [{}].", BgmTvApiConst.BASE);
+                    throw new DomainNotAccessException(
+                        "Current domain can not access: " + BgmTvApiConst.BASE);
+                }
             });
     }
 
@@ -159,12 +167,20 @@ public class BgmTvRepositoryImpl
                 .exchange(url, HttpMethod.GET,
                     new HttpEntity<>(null, headers), String.class)
                 .getBody();
+            log.debug("Pull [{}] result is [{}].", url, result);
+            if (StringUtils.isBlank(result)) {
+                return null;
+            }
             Map map = JsonUtils.json2obj(result, Map.class);
             Object infobox = map.remove("infobox");
+            log.debug("Pull [{}] result infobox is [{}].", url, infobox);
+
             BgmTvSubject bgmTvSubject =
                 JsonUtils.json2obj(JsonUtils.obj2Json(map), BgmTvSubject.class);
 
-            bgmTvSubject.setInfobox(convertInfoBox(JsonUtils.obj2Json(infobox)));
+            if(Objects.nonNull(infobox)) {
+                bgmTvSubject.setInfobox(convertInfoBox(JsonUtils.obj2Json(infobox)));
+            }
             return bgmTvSubject;
         } catch (HttpClientErrorException exception) {
             if (exception.getStatusCode() == HttpStatus.NOT_FOUND) {
