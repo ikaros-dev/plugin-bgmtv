@@ -1,5 +1,6 @@
 package run.ikaros.plugin.bgmtv.listener;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 import run.ikaros.api.core.setting.ConfigMap;
@@ -13,7 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-public class PluginConfigMapUpdateEventListener implements ApplicationListener<PluginConfigMapChangeEvent> {
+public class PluginConfigMapUpdateEventListener
+    implements ApplicationListener<PluginConfigMapChangeEvent> {
     private final BgmTvRepository bgmTvRepository;
 
     public PluginConfigMapUpdateEventListener(BgmTvRepository bgmTvRepository) {
@@ -25,18 +27,19 @@ public class PluginConfigMapUpdateEventListener implements ApplicationListener<P
         ConfigMap configMap = event.getConfigMap();
         bgmTvRepository.initRestTemplate(configMap);
         String token = null;
-        if(Objects.nonNull(configMap.getData())) {
+        if (Objects.nonNull(configMap.getData()) &&
+            StringUtils.isNotBlank(configMap.getData().get("token"))) {
             token = configMap.getData().get("token");
         }
         bgmTvRepository.refreshHttpHeaders(token);
 
-        log.info("Verifying that the domain name is accessible, please wait...");
-        boolean reachable = bgmTvRepository.assertDomainReachable();
-        if (!reachable) {
-            log.warn("The operation failed because the current domain name is not accessible "
-                + "for domain: [{}].", BgmTvApiConst.BASE);
-            throw new DomainNotAccessException(
-                "Current domain can not access: " + BgmTvApiConst.BASE);
-        }
+//        log.info("Verifying that the domain name is accessible, please wait...");
+//        boolean reachable = bgmTvRepository.assertDomainReachable();
+//        if (!reachable) {
+//            log.warn("The operation failed because the current domain name is not accessible "
+//                + "for domain: [{}].", BgmTvApiConst.BASE);
+//            throw new DomainNotAccessException(
+//                "Current domain can not access: " + BgmTvApiConst.BASE);
+//        }
     }
 }

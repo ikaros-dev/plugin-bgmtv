@@ -54,25 +54,28 @@ public class BgmTvRepositoryImpl
             .subscribe(configMap -> {
                 log.info("init rest temp when app ready and config exits, configmap: {}",
                     configMap);
+
                 initRestTemplate(configMap);
+
                 String token = null;
                 if (Objects.nonNull(configMap.getData())) {
                     token = configMap.getData().get("token");
                 }
                 refreshHttpHeaders(token);
 
-                log.info("Verifying that the domain name is accessible, please wait...");
-                boolean reachable = assertDomainReachable();
-                if (!reachable) {
-                    log.warn("The operation failed because the current domain name is not accessible "
-                        + "for domain: [{}].", BgmTvApiConst.BASE);
-                    throw new DomainNotAccessException(
-                        "Current domain can not access: " + BgmTvApiConst.BASE);
-                }
+//                log.info("Verifying that the domain name is accessible, please wait...");
+//                boolean reachable = assertDomainReachable();
+//                if (!reachable) {
+//                    log.warn("The operation failed because the current domain name is not accessible "
+//                        + "for domain: [{}].", BgmTvApiConst.BASE);
+//                    throw new DomainNotAccessException(
+//                        "Current domain can not access: " + BgmTvApiConst.BASE);
+//                }
             });
     }
 
     public void initRestTemplate(ConfigMap configMap) {
+        log.info("init rest template by config map : {}", configMap);
         if (configMap == null || configMap.getData() == null) {
             restTemplate = RestTemplateUtils.buildRestTemplate(3000, 3000);
             log.info("config rest template by no proxy.");
@@ -80,7 +83,8 @@ public class BgmTvRepositoryImpl
         }
         Map<String, String> map = configMap.getData();
         String enableProxy = String.valueOf(map.get("enableProxy"));
-        if (StringUtils.isBlank(enableProxy)) {
+        if (StringUtils.isBlank(enableProxy) ||
+            !Boolean.parseBoolean(enableProxy)) {
             restTemplate = RestTemplateUtils.buildRestTemplate(3000, 3000);
             log.info("config rest template by no proxy.");
             return;
@@ -120,7 +124,6 @@ public class BgmTvRepositoryImpl
 
     @Override
     public boolean assertDomainReachable() {
-        refreshHttpHeaders(null);
         try {
             restTemplate
                 .exchange(BgmTvApiConst.BASE, HttpMethod.GET,
@@ -178,7 +181,7 @@ public class BgmTvRepositoryImpl
             BgmTvSubject bgmTvSubject =
                 JsonUtils.json2obj(JsonUtils.obj2Json(map), BgmTvSubject.class);
 
-            if(Objects.nonNull(infobox)) {
+            if (Objects.nonNull(infobox)) {
                 bgmTvSubject.setInfobox(convertInfoBox(JsonUtils.obj2Json(infobox)));
             }
             return bgmTvSubject;

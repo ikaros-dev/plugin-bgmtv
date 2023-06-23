@@ -15,7 +15,9 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class RestTemplateUtils {
 
     private static Map<String, RestTemplate> restTemplateProxyMap = new HashMap<>();
@@ -36,6 +38,7 @@ public class RestTemplateUtils {
             requestFactory.setConnectTimeout(
                 connectTimeout == null ? DEFAULT_CONNECT_TIMEOUT : connectTimeout);
             restTemplate.setRequestFactory(requestFactory);
+            log.debug("Build a no proxy rest template: {}", restTemplate);
         }
         return restTemplate;
     }
