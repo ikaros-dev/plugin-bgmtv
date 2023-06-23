@@ -1,3 +1,9 @@
+- $formkit: 'password'
+  name: 'token'
+  value: '$token'
+  label: 'Token'
+  help: '代理的服务IP地址'
+
 - $cmp: 'FormKit'
   props:
     name: 'enableProxy'

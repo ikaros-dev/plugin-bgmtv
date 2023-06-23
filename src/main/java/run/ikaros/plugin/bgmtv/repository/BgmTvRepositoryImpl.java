@@ -30,6 +30,7 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 
@@ -55,7 +56,11 @@ public class BgmTvRepositoryImpl
                 log.info("init rest temp when app ready and config exits, configmap: {}",
                     configMap);
                 initRestTemplate(configMap);
-                refreshHttpHeaders(null);
+                String token = null;
+                if(Objects.nonNull(configMap.getData())) {
+                    token = configMap.getData().get("token");
+                }
+                refreshHttpHeaders(token);
             });
     }
 

@@ -65,8 +65,14 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
                 "Current domain can not access: " + BgmTvApiConst.BASE);
         }
 
+        BgmTvSubject bgmTvSubject = bgmTvRepository.getSubject(Long.valueOf(id));
+        if(bgmTvSubject == null) {
+            log.warn("Pull subject is null, skip operate.");
+            return null;
+        }
+
         Subject subject =
-            convert(Objects.requireNonNull(bgmTvRepository.getSubject(Long.valueOf(id))));
+            convert(Objects.requireNonNull(bgmTvSubject));
         if (Objects.isNull(subject)) {
             log.warn("Pull subject is null, skip operate.");
             return null;

@@ -6,6 +6,8 @@ import run.ikaros.api.core.setting.ConfigMap;
 import run.ikaros.api.plugin.event.PluginConfigMapChangeEvent;
 import run.ikaros.plugin.bgmtv.repository.BgmTvRepository;
 
+import java.util.Objects;
+
 @Component
 public class PluginConfigMapUpdateEventListener implements ApplicationListener<PluginConfigMapChangeEvent> {
     private final BgmTvRepository bgmTvRepository;
@@ -18,6 +20,10 @@ public class PluginConfigMapUpdateEventListener implements ApplicationListener<P
     public void onApplicationEvent(PluginConfigMapChangeEvent event) {
         ConfigMap configMap = event.getConfigMap();
         bgmTvRepository.initRestTemplate(configMap);
-        bgmTvRepository.refreshHttpHeaders(null);
+        String token = null;
+        if(Objects.nonNull(configMap.getData())) {
+            token = configMap.getData().get("token");
+        }
+        bgmTvRepository.refreshHttpHeaders(token);
     }
 }
