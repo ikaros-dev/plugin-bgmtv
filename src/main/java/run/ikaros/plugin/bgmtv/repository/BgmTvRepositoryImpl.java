@@ -42,6 +42,7 @@ public class BgmTvRepositoryImpl
     implements BgmTvRepository, InitializingBean {
     private RestTemplate restTemplate;
     private final ReactiveCustomClient reactiveCustomClient;
+    private final HttpHeaders headers = new HttpHeaders();
 
     public BgmTvRepositoryImpl(ReactiveCustomClient reactiveCustomClient) {
         this.reactiveCustomClient = reactiveCustomClient;
@@ -120,7 +121,6 @@ public class BgmTvRepositoryImpl
         }
     }
 
-    private final HttpHeaders headers = new HttpHeaders();
 
     @Override
     public boolean assertDomainReachable() {

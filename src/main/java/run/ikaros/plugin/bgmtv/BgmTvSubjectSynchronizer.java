@@ -54,7 +54,6 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
     @Override
     public Subject pull(String id) {
         Assert.hasText(id, "bgmtv id must has text.");
-        bgmTvRepository.refreshHttpHeaders(null);
 
         BgmTvSubject bgmTvSubject = bgmTvRepository.getSubject(Long.valueOf(id));
         if (bgmTvSubject == null || bgmTvSubject.getId() == null) {
