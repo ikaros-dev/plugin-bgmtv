@@ -73,7 +73,7 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
             subject.getName(), getSyncPlatform().name(), id);
 
         List<Episode> episodes =
-            bgmTvRepository.findEpisodesBySubjectId(Long.valueOf(id), BgmTvEpisodeType.POSITIVE,
+            bgmTvRepository.findEpisodesBySubjectId(Long.valueOf(id), null,
                     null, null)
                 .stream()
                 .map(this::convertEpisode)
@@ -113,8 +113,8 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
             .setNameCn(bgmTvEpisode.getNameCn())
             .setDescription(bgmTvEpisode.getDesc())
             .setAirTime(convertAirTime(bgmTvEpisode.getAirDate()))
-            .setSequence(Objects.nonNull(bgmTvEpisode.getSort())
-                ? bgmTvEpisode.getSort() : bgmTvEpisode.getEp());
+            .setSequence(Double.valueOf(Objects.nonNull(bgmTvEpisode.getSort())
+                ? bgmTvEpisode.getSort() : bgmTvEpisode.getEp()));
     }
 
     private Subject convert(BgmTvSubject bgmTvSubject) {

@@ -59,7 +59,7 @@ public class BgmTvRepositoryImpl
 
                 String token = null;
                 if (Objects.nonNull(configMap.getData())) {
-                    token = configMap.getData().get("token");
+                    token = String.valueOf(configMap.getData().get("token"));
                 }
                 refreshHttpHeaders(token);
 
@@ -81,7 +81,7 @@ public class BgmTvRepositoryImpl
             log.info("config rest template by no proxy.");
             return;
         }
-        Map<String, String> map = configMap.getData();
+        Map<String, Object> map = configMap.getData();
         String enableProxy = String.valueOf(map.get("enableProxy"));
         if (StringUtils.isBlank(enableProxy) ||
             !Boolean.parseBoolean(enableProxy)) {
@@ -89,9 +89,9 @@ public class BgmTvRepositoryImpl
             log.info("config rest template by no proxy.");
             return;
         }
-        String proxyType = map.get("proxyType");
-        String host = map.get("host");
-        String port = map.get("port");
+        String proxyType = String.valueOf(map.get("proxyType"));
+        String host = String.valueOf(map.get("host"));
+        String port = String.valueOf(map.get("port"));
         if (StringUtils.isNotBlank(enableProxy)
             && Boolean.parseBoolean(enableProxy)
             && StringUtils.isNotBlank(proxyType)
@@ -313,7 +313,7 @@ public class BgmTvRepositoryImpl
 
     @Override
     public List<BgmTvEpisode> findEpisodesBySubjectId(@Nonnull Long subjectId,
-                                                      @Nonnull BgmTvEpisodeType episodeType,
+                                                      @Nullable BgmTvEpisodeType episodeType,
                                                       @Nullable Integer offset,
                                                       @Nullable Integer limit) {
         Assert.isTrue(subjectId > 0, "'subjectId' must be positive");
@@ -327,9 +327,12 @@ public class BgmTvRepositoryImpl
         UriComponentsBuilder uriComponentsBuilder =
             UriComponentsBuilder.fromHttpUrl(BgmTvApiConst.EPISODES)
                 .queryParam("subject_id", subjectId)
-                .queryParam("type", episodeType.getCode())
                 .queryParam("limit", limit)
                 .queryParam("offset", offset);
+
+        if (Objects.nonNull(episodeType)) {
+            uriComponentsBuilder.queryParam("type", episodeType.getCode());
+        }
 
 
         ResponseEntity<BgmTvPagingData> responseEntity = restTemplate

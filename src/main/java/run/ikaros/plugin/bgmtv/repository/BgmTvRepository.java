@@ -63,7 +63,7 @@ public interface BgmTvRepository {
 
     @Retryable
     List<BgmTvEpisode> findEpisodesBySubjectId(@Nonnull Long subjectId,
-                                               @Nonnull BgmTvEpisodeType episodeType,
+                                               @Nullable BgmTvEpisodeType episodeType,
                                                @Nullable Integer offset,
                                                @Nullable Integer limit);
 

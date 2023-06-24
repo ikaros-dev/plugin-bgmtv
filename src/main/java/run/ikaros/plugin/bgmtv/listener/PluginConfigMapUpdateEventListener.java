@@ -28,8 +28,8 @@ public class PluginConfigMapUpdateEventListener
         bgmTvRepository.initRestTemplate(configMap);
         String token = null;
         if (Objects.nonNull(configMap.getData()) &&
-            StringUtils.isNotBlank(configMap.getData().get("token"))) {
-            token = configMap.getData().get("token");
+            StringUtils.isNotBlank(String.valueOf(configMap.getData().get("token")))) {
+            token = String.valueOf(configMap.getData().get("token"));
         }
         bgmTvRepository.refreshHttpHeaders(token);
 
