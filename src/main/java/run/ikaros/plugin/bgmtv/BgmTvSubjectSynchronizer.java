@@ -57,7 +57,7 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
         bgmTvRepository.refreshHttpHeaders(null);
 
         BgmTvSubject bgmTvSubject = bgmTvRepository.getSubject(Long.valueOf(id));
-        if(bgmTvSubject == null || bgmTvSubject.getId() == null) {
+        if (bgmTvSubject == null || bgmTvSubject.getId() == null) {
             log.warn("Pull subject is null, skip operate.");
             return null;
         }
@@ -113,7 +113,8 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
             .setNameCn(bgmTvEpisode.getNameCn())
             .setDescription(bgmTvEpisode.getDesc())
             .setAirTime(convertAirTime(bgmTvEpisode.getAirDate()))
-            .setSequence(bgmTvEpisode.getEp());
+            .setSequence(Objects.nonNull(bgmTvEpisode.getSort())
+                ? bgmTvEpisode.getSort() : bgmTvEpisode.getEp());
     }
 
     private Subject convert(BgmTvSubject bgmTvSubject) {
