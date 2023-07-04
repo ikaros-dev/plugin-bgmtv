@@ -139,7 +139,14 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
             .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
             .parseDefaulting(ChronoField.MILLI_OF_SECOND, 0)
             .toFormatter();
-        return LocalDateTime.parse(date, formatter);
+        LocalDateTime dateTime;
+        try {
+            dateTime = LocalDateTime.parse(date, formatter);
+        } catch (Exception e) {
+            log.warn("convert air time fail:", e);
+            dateTime = null;
+        }
+        return dateTime;
     }
 
     private SubjectType convertType(BgmTvSubjectType type) {
