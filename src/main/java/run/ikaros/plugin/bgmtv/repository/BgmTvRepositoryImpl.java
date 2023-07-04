@@ -82,7 +82,7 @@ public class BgmTvRepositoryImpl
             log.info("config rest template by no proxy.");
             return;
         }
-        Map<String, Object> map = configMap.getData();
+        Map<String, String> map = configMap.getData();
         String enableProxy = String.valueOf(map.get("enableProxy"));
         if (StringUtils.isBlank(enableProxy) ||
             !Boolean.parseBoolean(enableProxy)) {
