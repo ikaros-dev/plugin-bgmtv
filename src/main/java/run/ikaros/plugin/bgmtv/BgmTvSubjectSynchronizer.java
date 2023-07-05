@@ -6,8 +6,10 @@ import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.util.Assert;
 import reactor.core.publisher.Mono;
+import run.ikaros.api.constant.FileConst;
 import run.ikaros.api.core.file.File;
 import run.ikaros.api.core.file.FileOperate;
+import run.ikaros.api.core.file.FolderOperate;
 import run.ikaros.api.core.subject.Episode;
 import run.ikaros.api.core.subject.Subject;
 import run.ikaros.api.core.subject.SubjectSync;
@@ -20,7 +22,6 @@ import run.ikaros.plugin.bgmtv.model.BgmTvSubject;
 import run.ikaros.plugin.bgmtv.model.BgmTvSubjectType;
 import run.ikaros.plugin.bgmtv.repository.BgmTvRepository;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -29,16 +30,21 @@ import java.util.List;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 
+import static run.ikaros.api.constant.FileConst.DEFAULT_FOLDER_ROOT_ID;
+
 @Slf4j
 @Extension
 public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
 
     private final BgmTvRepository bgmTvRepository;
     private final FileOperate fileOperate;
+    private final FolderOperate folderOperate;
 
-    public BgmTvSubjectSynchronizer(BgmTvRepository bgmTvRepository, FileOperate fileOperate) {
+    public BgmTvSubjectSynchronizer(BgmTvRepository bgmTvRepository, FileOperate fileOperate,
+                                    FolderOperate folderOperate) {
         this.bgmTvRepository = bgmTvRepository;
         this.fileOperate = fileOperate;
+        this.folderOperate = folderOperate;
     }
 
     @Override
@@ -90,10 +96,12 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
             byte[] bytes = bgmTvRepository.downloadCover(coverUrl);
             DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
             String url = fileOperate.upload(FileUtils.parseFileName(coverUrl),
-                    Mono.just(dataBufferFactory.wrap(bytes)).flux())
+                Mono.just(dataBufferFactory.wrap(bytes)).flux())
+                .flatMap(file -> folderOperate.findByParentIdAndName(DEFAULT_FOLDER_ROOT_ID, "cover")
+                    .switchIfEmpty(folderOperate.create(DEFAULT_FOLDER_ROOT_ID, "cover"))
+                    .flatMap(folder -> fileOperate.updateFolder(file.getId(), folder.getId())))
                 .map(File::getUrl)
-                .doOnSuccess(u -> log.info("Pull cover for url: [{}].", u))
-                .block(Duration.ofSeconds(5));
+                .block();
             subject.setCover(url);
         }
         return subject;
