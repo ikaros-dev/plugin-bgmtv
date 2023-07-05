@@ -93,13 +93,18 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
         if (StringUtils.isNotBlank(subject.getCover())
             && subject.getCover().startsWith("http")) {
             String coverUrl = subject.getCover();
+            String coverFileName = StringUtils.isNotBlank(subject.getNameCn())
+                ? subject.getNameCn() : subject.getName();
+            coverFileName =
+                coverFileName + "." + FileUtils.parseFilePostfix(FileUtils.parseFileName(coverUrl));
             byte[] bytes = bgmTvRepository.downloadCover(coverUrl);
             DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
-            String url = fileOperate.upload(FileUtils.parseFileName(coverUrl),
-                Mono.just(dataBufferFactory.wrap(bytes)).flux())
-                .flatMap(file -> folderOperate.findByParentIdAndName(DEFAULT_FOLDER_ROOT_ID, "cover")
-                    .switchIfEmpty(folderOperate.create(DEFAULT_FOLDER_ROOT_ID, "cover"))
-                    .flatMap(folder -> fileOperate.updateFolder(file.getId(), folder.getId())))
+            String url = fileOperate.upload(coverFileName,
+                    Mono.just(dataBufferFactory.wrap(bytes)).flux())
+                .flatMap(
+                    file -> folderOperate.findByParentIdAndName(DEFAULT_FOLDER_ROOT_ID, "cover")
+                        .switchIfEmpty(folderOperate.create(DEFAULT_FOLDER_ROOT_ID, "cover"))
+                        .flatMap(folder -> fileOperate.updateFolder(file.getId(), folder.getId())))
                 .map(File::getUrl)
                 .block();
             subject.setCover(url);
