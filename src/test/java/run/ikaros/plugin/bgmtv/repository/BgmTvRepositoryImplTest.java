@@ -28,7 +28,7 @@ class BgmTvRepositoryImplTest {
     void getMe() {
         ConfigMap configMap = new ConfigMap();
         configMap.setName("PluginBgmTv");
-        configMap.putDataItem("enableProxy", false);
+        configMap.putDataItem("enableProxy", "false");
         bgmTvRepository.initRestTemplate(configMap);
         bgmTvRepository.refreshHttpHeaders(System.getenv("IKAROS_TEST_TOKEN"));
         BgmTvUserInfo userInfo = bgmTvRepository.getMe();
