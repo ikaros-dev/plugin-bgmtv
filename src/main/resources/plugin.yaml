@@ -4,8 +4,8 @@ name: PluginBgmTv
 # plugin entry class that extends BasePlugin
 clazz: run.ikaros.plugin.bgmtv.BgmTvPlugin
 # plugin 'version' is a valid semantic version string (see semver.org).
-version: 0.6.0
-requires: ">=0.6.0"
+version: 0.6.1
+requires: ">=0.6.1"
 author:
   name: Ikaros OSS Team
   website: https://github.com/ikaros-dev
