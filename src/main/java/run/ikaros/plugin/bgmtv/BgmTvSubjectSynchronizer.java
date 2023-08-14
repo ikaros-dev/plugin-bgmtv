@@ -223,7 +223,7 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
             .setInfobox(bgmTvSubject.getInfobox())
             .setSummary(bgmTvSubject.getSummary())
             .setNsfw(bgmTvSubject.getNsfw())
-            .setAirTime(convertAirTime(bgmTvSubject.getDate()))
+            .setAirTime(convertAirTime(Objects.nonNull(bgmTvSubject.getDate()) ? bgmTvSubject.getDate() : "1999-09-09"))
             .setCover(bgmTvSubject.getImages().getLarge());
     }
 
@@ -249,24 +249,24 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
         return dateTime;
     }
 
-    private SubjectType convertType(BgmTvSubjectType type) {
+    private SubjectType convertType(Integer type) {
         if (Objects.isNull(type)) {
             return SubjectType.OTHER;
         }
         switch (type) {
-            case BOOK -> {
+            case 1 -> {
                 return SubjectType.NOVEL;
             }
-            case ANIME -> {
+            case 2 -> {
                 return SubjectType.ANIME;
             }
-            case MUSIC -> {
+            case 3 -> {
                 return SubjectType.MUSIC;
             }
-            case GAME -> {
+            case 4 -> {
                 return SubjectType.GAME;
             }
-            case REAL -> {
+            case 6 -> {
                 return SubjectType.REAL;
             }
             default -> {

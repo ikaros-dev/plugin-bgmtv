@@ -1,6 +1,7 @@
 package run.ikaros.plugin.bgmtv.constants;
 
 import java.io.File;
+import java.util.Map;
 
 public interface BgmTvConst {
     String DATE_PATTERN = "YYYY-MM-DD";

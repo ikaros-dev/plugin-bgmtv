@@ -266,7 +266,7 @@ public class BgmTvRepositoryImpl
 
     @Override
     public List<BgmTvSubject> searchSubjectWithOldApi(@Nonnull String keyword,
-                                                      @Nullable BgmTvSubjectType type) {
+                                                      @Nullable Integer type) {
         Assert.hasText(keyword, "'keyword' must has text");
         // https://api.bgm.tv/search/subject/air?type=2&responseGroup=large
         UriComponentsBuilder uriComponentsBuilder =
@@ -274,12 +274,12 @@ public class BgmTvRepositoryImpl
                 .queryParam("responseGroup", "large");
 
         if (type != null) {
-            uriComponentsBuilder.queryParam("type", type.getCode());
+            uriComponentsBuilder.queryParam("type", type);
         }
 
         String url = BgmTvApiConst.OLD_SEARCH_SUBJECT + "/" + keyword + "?responseGroup=large";
         if (type != null) {
-            url = url + "&type=" + type.getCode();
+            url = url + "&type=" + type;
         }
 
         ResponseEntity<Map> responseEntity =

@@ -15,7 +15,50 @@ import lombok.Data;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BgmTvSubject {
     private Integer id;
-    private BgmTvSubjectType type;
+    /**
+     * <table>
+     *     <thead>
+     *         <tr>
+     *             <th>code</th>
+     *             <th>type</th>
+     *             <th>description</th>
+     *         </tr>
+     *     </thead>
+     *     <tbody>
+     *         <tr>
+     *             <td>5</td>
+     *             <td>NONE</td>
+     *             <td>没有</td>
+     *         </tr>
+     *         <tr>
+     *             <td>1</td>
+     *             <td>BOOK</td>
+     *             <td>书籍</td>
+     *         </tr>
+     *         <tr>
+     *             <td>2</td>
+     *             <td>ANIME</td>
+     *             <td>动画</td>
+     *         </tr>
+     *         <tr>
+     *             <td>3</td>
+     *             <td>MUSIC</td>
+     *             <td>音乐</td>
+     *         </tr>
+     *         <tr>
+     *             <td>4</td>
+     *             <td>GAME</td>
+     *             <td>游戏</td>
+     *         </tr>
+     *         <tr>
+     *             <td>6</td>
+     *             <td>REAL</td>
+     *             <td>三次元</td>
+     *         </tr>
+     *     </tbody>
+     * </table>
+     */
+    private Integer type;
     private String name;
     @JsonProperty("name_cn")
     private String nameCn;

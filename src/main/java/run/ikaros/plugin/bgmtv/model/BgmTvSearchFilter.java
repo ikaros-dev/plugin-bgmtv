@@ -7,9 +7,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class BgmTvSearchFilter {
     /**
-     * @see BgmTvSubjectType
+     * @see BgmTvSubject#getType()
      */
-    private Integer type = BgmTvSubjectType.NONE.getCode();
+    private Integer type = 5;
     private String tag;
     @JsonProperty("air_date")
     private String airDate = ">1970-01-01";

@@ -50,7 +50,7 @@ public interface BgmTvRepository {
 
     @Retryable
     List<BgmTvSubject> searchSubjectWithOldApi(@Nonnull String keyword,
-                                               @Nullable BgmTvSubjectType type);
+                                               @Nullable Integer type);
 
     @Retryable
     default List<BgmTvSubject> searchSubjectWithOldApi(@Nonnull String keyword) {
