@@ -149,7 +149,7 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
             return subject;
         }
         return subject
-            .setType(convertType(bgmTvSubject.getType()))
+            .setType(convertType(bgmTvSubject.getType(), bgmTvSubject.getPlatform()))
             .setName(bgmTvSubject.getName())
             .setNameCn(bgmTvSubject.getNameCn())
             .setInfobox(bgmTvSubject.getInfobox())
@@ -217,7 +217,7 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
         }
         return new Subject()
             .setId(Long.valueOf(String.valueOf(bgmTvSubject.getId())))
-            .setType(convertType(bgmTvSubject.getType()))
+            .setType(convertType(bgmTvSubject.getType(), bgmTvSubject.getPlatform()))
             .setName(bgmTvSubject.getName())
             .setNameCn(bgmTvSubject.getNameCn())
             .setInfobox(bgmTvSubject.getInfobox())
@@ -249,13 +249,14 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
         return dateTime;
     }
 
-    private SubjectType convertType(Integer type) {
+    private SubjectType convertType(Integer type, String platform) {
         if (Objects.isNull(type)) {
             return SubjectType.OTHER;
         }
         switch (type) {
             case 1 -> {
-                return SubjectType.NOVEL;
+                return (StringUtils.isNotBlank(platform) && "小说".equalsIgnoreCase(platform))
+                    ? SubjectType.NOVEL : SubjectType.COMIC;
             }
             case 2 -> {
                 return SubjectType.ANIME;
