@@ -99,7 +99,8 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
             String coverFileName = StringUtils.isNotBlank(subject.getNameCn())
                 ? subject.getNameCn() : subject.getName();
             coverFileName =
-                coverFileName + "." + FileUtils.parseFilePostfix(FileUtils.parseFileName(coverUrl));
+                System.currentTimeMillis() + "-" + coverFileName
+                    + "." + FileUtils.parseFilePostfix(FileUtils.parseFileName(coverUrl));
             byte[] bytes = bgmTvRepository.downloadCover(coverUrl);
             DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
             return fileOperate.upload(coverFileName,
@@ -223,7 +224,8 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
             .setInfobox(bgmTvSubject.getInfobox())
             .setSummary(bgmTvSubject.getSummary())
             .setNsfw(bgmTvSubject.getNsfw())
-            .setAirTime(convertAirTime(Objects.nonNull(bgmTvSubject.getDate()) ? bgmTvSubject.getDate() : "1999-09-09"))
+            .setAirTime(convertAirTime(
+                Objects.nonNull(bgmTvSubject.getDate()) ? bgmTvSubject.getDate() : "1999-09-09"))
             .setCover(bgmTvSubject.getImages().getLarge());
     }
 
