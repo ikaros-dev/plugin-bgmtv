@@ -80,7 +80,8 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
             bgmTvRepository.findEpisodesBySubjectId(Long.valueOf(id), null,
                     null, null)
                 .stream()
-                .map(this::convertEpisode)
+                .map(bgmTvEpisode -> SubjectType.MUSIC.equals(subject.getType()) ?
+                    convertMusicEpisode(bgmTvEpisode) : convertEpisode(bgmTvEpisode))
                 .toList();
         log.info("Pull episode count:[{}] by platform:[{}] and id:[{}]",
             episodes.size(), getSyncPlatform().name(), id);
@@ -209,6 +210,21 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
             .setGroup(convertEpisodeType(bgmTvEpisode.getType()))
             .setSequence((Objects.nonNull(bgmTvEpisode.getSort())
                 ? bgmTvEpisode.getSort().intValue() : bgmTvEpisode.getEp()));
+    }
+
+    private Episode convertMusicEpisode(BgmTvEpisode bgmTvEpisode) {
+        log.debug("Pull episode:[{}] form by platform:[{}]",
+            bgmTvEpisode.getName(), getSyncPlatform());
+        int originalSeq = Objects.nonNull(bgmTvEpisode.getSort())
+            ? bgmTvEpisode.getSort().intValue() : bgmTvEpisode.getEp();
+        originalSeq = Integer.parseInt(bgmTvEpisode.getDisc() + originalSeq);
+        return new Episode()
+            .setName(bgmTvEpisode.getName())
+            .setNameCn(bgmTvEpisode.getNameCn())
+            .setDescription(bgmTvEpisode.getDesc())
+            .setAirTime(convertAirTime(bgmTvEpisode.getAirDate()))
+            .setGroup(convertEpisodeType(bgmTvEpisode.getType()))
+            .setSequence(originalSeq);
     }
 
 
