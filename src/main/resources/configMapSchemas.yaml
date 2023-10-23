@@ -7,7 +7,7 @@
 - $cmp: 'FormKit'
   props:
     name: 'enableProxy'
-    value: '$enableProxy'
+    value: "$enableProxy == 'true'"
     type: 'checkbox'
     id: 'enableProxy'
     label: '是否开启代理?'
