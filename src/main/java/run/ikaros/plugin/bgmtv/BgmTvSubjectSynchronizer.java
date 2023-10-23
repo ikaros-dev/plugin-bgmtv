@@ -6,12 +6,10 @@ import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.util.Assert;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
-import reactor.util.function.Tuple2;
-import run.ikaros.api.constant.AppConst;
-import run.ikaros.api.core.file.File;
-import run.ikaros.api.core.file.FileOperate;
-import run.ikaros.api.core.file.FolderOperate;
+import run.ikaros.api.core.attachment.Attachment;
+import run.ikaros.api.core.attachment.AttachmentConst;
+import run.ikaros.api.core.attachment.AttachmentOperate;
+import run.ikaros.api.core.attachment.AttachmentUploadCondition;
 import run.ikaros.api.core.subject.*;
 import run.ikaros.api.infra.utils.FileUtils;
 import run.ikaros.api.store.enums.EpisodeGroup;
@@ -25,29 +23,21 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import static run.ikaros.api.constant.FileConst.DEFAULT_FOLDER_ROOT_ID;
-import static run.ikaros.plugin.bgmtv.model.BgmTvEpisodeType.POSITIVE;
 
 @Slf4j
 @Extension
 public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
 
     private final BgmTvRepository bgmTvRepository;
-    private final FileOperate fileOperate;
-    private final FolderOperate folderOperate;
+    private final AttachmentOperate attachmentOperate;
 
-    public BgmTvSubjectSynchronizer(BgmTvRepository bgmTvRepository, FileOperate fileOperate,
-                                    FolderOperate folderOperate) {
+    public BgmTvSubjectSynchronizer(BgmTvRepository bgmTvRepository,
+                                    AttachmentOperate attachmentOperate) {
         this.bgmTvRepository = bgmTvRepository;
-        this.fileOperate = fileOperate;
-        this.folderOperate = folderOperate;
+        this.attachmentOperate = attachmentOperate;
     }
 
     @Override
@@ -104,13 +94,11 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
                     + "." + FileUtils.parseFilePostfix(FileUtils.parseFileName(coverUrl));
             byte[] bytes = bgmTvRepository.downloadCover(coverUrl);
             DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
-            return fileOperate.upload(coverFileName,
-                    Mono.just(dataBufferFactory.wrap(bytes)).flux())
-                .flatMap(
-                    file -> folderOperate.findByParentIdAndName(DEFAULT_FOLDER_ROOT_ID, "cover")
-                        .switchIfEmpty(folderOperate.create(DEFAULT_FOLDER_ROOT_ID, "cover"))
-                        .flatMap(folder -> fileOperate.updateFolder(file.getId(), folder.getId())))
-                .map(File::getUrl)
+            return attachmentOperate.upload(AttachmentUploadCondition.builder()
+                .parentId(AttachmentConst.COVER_DIRECTORY_ID)
+                .name(coverFileName).dataBufferFlux(Mono.just(dataBufferFactory.wrap(bytes)).flux())
+                .build())
+                .map(Attachment::getUrl)
                 .map(subject::setCover);
         }
         return Mono.just(subject);
