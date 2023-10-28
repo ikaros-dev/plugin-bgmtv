@@ -26,10 +26,7 @@ import run.ikaros.plugin.bgmtv.utils.RestTemplateUtils;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import lombok.extern.slf4j.Slf4j;
 
 import static run.ikaros.plugin.bgmtv.constants.BgmTvConst.REST_TEMPLATE_USER_AGENT;
@@ -151,6 +148,7 @@ public class BgmTvRepositoryImpl
         headers.set(HttpHeaders.USER_AGENT, REST_TEMPLATE_USER_AGENT);
         headers.set(HttpHeaders.COOKIE, "chii_searchDateLine=0");
         headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+        headers.setContentType(MediaType.APPLICATION_JSON);
         if (StringUtils.isNotBlank(accessToken)) {
             log.info("update http head access token");
             headers.set(HttpHeaders.AUTHORIZATION, TOKEN_PREFIX + accessToken);
@@ -348,6 +346,10 @@ public class BgmTvRepositoryImpl
 
     @Override
     public BgmTvUserInfo getMe() {
+        List<String> authList = headers.get(HttpHeaders.AUTHORIZATION);
+        if (authList == null || authList.isEmpty()) {
+            return null;
+        }
         ResponseEntity<BgmTvUserInfo> responseEntity =
             restTemplate.exchange(BgmTvApiConst.ME, HttpMethod.GET, new HttpEntity<>(null, headers),
                 BgmTvUserInfo.class);
@@ -358,6 +360,43 @@ public class BgmTvRepositoryImpl
             return responseEntity.getBody();
         }
         return null;
+    }
+
+    @Override
+    public void postUserSubjectCollection(String bgmTvSubId,
+                                          BgmTVSubCollectionType bgmTVSubCollectionType,
+                                          Boolean isPrivate) {
+        Assert.hasText(bgmTvSubId, "'bgmTvSubId' must has text.");
+        Assert.notNull(bgmTVSubCollectionType, "'bgmTVSubCollectionType' must not null.");
+        final long subjectId = Long.parseLong(bgmTvSubId);
+        final int collectionType = bgmTVSubCollectionType.getCode();
+        final boolean collectionIsPrivate = Optional.ofNullable(isPrivate).orElse(false);
+
+        BgmTvUserInfo me = getMe();
+        if (Objects.isNull(me)) {
+            return;
+        }
+        final String username = me.getUsername();
+
+        try {
+
+            // https://api.bgm.tv/v0/users/{username}/collections/{subjectId}
+            final String url = BgmTvApiConst.USER_COLLECTIONS_SUBJECT + '/' + subjectId;
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("type", collectionType);
+            body.put("private", collectionIsPrivate);
+
+            HttpEntity<String> request = new HttpEntity<>(JsonUtils.obj2Json(body), headers);
+
+            restTemplate
+                .exchange(url, HttpMethod.POST,
+                    request, Map.class);
+            log.info("Mark subject[{}] collection is [{}] with private[{}] for bgmtv user[{}}.",
+                subjectId, bgmTVSubCollectionType.name(), collectionIsPrivate, username);
+        } catch (HttpClientErrorException exception) {
+            log.error("Post user subject collection stage fail", exception);
+        }
     }
 
 

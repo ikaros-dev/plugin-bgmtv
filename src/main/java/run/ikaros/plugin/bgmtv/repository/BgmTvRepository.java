@@ -69,4 +69,7 @@ public interface BgmTvRepository {
 
     @Retryable
     BgmTvUserInfo getMe();
+
+    @Retryable
+    void postUserSubjectCollection(String bgmTvSubId, BgmTVSubCollectionType bgmTVSubCollectionType, Boolean isPrivate);
 }
