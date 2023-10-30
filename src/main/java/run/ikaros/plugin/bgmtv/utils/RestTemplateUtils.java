@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.NestedRuntimeException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 import run.ikaros.plugin.bgmtv.repository.BgmTvRepositoryImpl;
@@ -22,6 +23,7 @@ public class RestTemplateUtils {
 
     private static Map<String, RestTemplate> restTemplateProxyMap = new HashMap<>();
     private static RestTemplate restTemplate;
+    private static RestTemplate httpComponentRestTemplate;
     public static final Integer DEFAULT_READ_TIMEOUT = 5000;
     public static final Integer DEFAULT_CONNECT_TIMEOUT = 5000;
 
@@ -41,6 +43,24 @@ public class RestTemplateUtils {
             log.debug("Build a no proxy rest template: {}", restTemplate);
         }
         return restTemplate;
+    }
+
+    public static synchronized RestTemplate buildHttpComponentRestTemplate(
+        @Nullable Integer readTimeout,
+        @Nullable Integer connectTimeout) {
+        if (httpComponentRestTemplate == null) {
+            httpComponentRestTemplate = new RestTemplate();
+            HttpComponentsClientHttpRequestFactory requestFactory =
+                new HttpComponentsClientHttpRequestFactory();
+            requestFactory.setConnectionRequestTimeout(
+                readTimeout == null ? DEFAULT_READ_TIMEOUT : readTimeout);
+            requestFactory.setConnectTimeout(
+                connectTimeout == null ? DEFAULT_CONNECT_TIMEOUT : connectTimeout);
+            httpComponentRestTemplate.setRequestFactory(requestFactory);
+            log.debug("Build a no proxy http component rest template: {}",
+                httpComponentRestTemplate);
+        }
+        return httpComponentRestTemplate;
     }
 
 

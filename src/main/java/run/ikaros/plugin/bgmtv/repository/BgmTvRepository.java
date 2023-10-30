@@ -72,4 +72,8 @@ public interface BgmTvRepository {
 
     @Retryable
     void postUserSubjectCollection(String bgmTvSubId, BgmTVSubCollectionType bgmTVSubCollectionType, Boolean isPrivate);
+
+    @Retryable
+    void patchSubjectEpisodeFinish(String bgmTvSubId, boolean isFinish,
+                                   boolean isPrivate, List<Integer> bgmTvEpSorts);
 }

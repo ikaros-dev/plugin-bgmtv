@@ -2,7 +2,24 @@
   name: 'token'
   value: '$token'
   label: 'Token'
-  help: '代理的服务IP地址'
+  help: '您的番组计划访问令牌'
+
+- $cmp: 'FormKit'
+  props:
+    name: 'syncCollectionAndEpisodeFinish'
+    value: "$syncCollectionAndEpisodeFinish == 'true'"
+    type: 'checkbox'
+    id: 'syncCollectionAndEpisodeFinish'
+    label: '是否单向同步收藏和播放进度？'
+  help: '有且仅有收藏条目和剧集完成是，会单向同步您的收藏和播放进度到番组计划，从伊卡洛斯到番组计划。'
+
+- $cmp: 'FormKit'
+  props:
+    name: 'nsfwPrivate'
+    value: "$nsfwPrivate == 'true'"
+    type: 'checkbox'
+    id: 'nsfwPrivate'
+    label: 'NSFW类型的条目是否将操作私有？'
 
 - $cmp: 'FormKit'
   props:

@@ -30,6 +30,8 @@ dependencies {
     compileOnly 'org.springframework.retry:spring-retry:2.0.2'
     compileOnly files(coreLibJar)
 
+    implementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
+
 
     testImplementation "org.springframework:spring-context:$springContext"
     testImplementation "org.pf4j:pf4j:$pf4j"
