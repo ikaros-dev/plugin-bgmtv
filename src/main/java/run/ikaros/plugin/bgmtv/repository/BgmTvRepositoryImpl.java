@@ -32,6 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import static run.ikaros.plugin.bgmtv.constants.BgmTvConst.REST_TEMPLATE_USER_AGENT;
 import static run.ikaros.plugin.bgmtv.constants.BgmTvConst.TOKEN_PREFIX;
+import static run.ikaros.plugin.bgmtv.model.BgmTVSubCollectionType.DOING;
 
 @Slf4j
 @Component
@@ -401,54 +402,104 @@ public class BgmTvRepositoryImpl
     }
 
     @Override
-    public void patchSubjectEpisodeFinish(String bgmTvSubId, boolean isFinish,
-                                          boolean isPrivate, List<Integer> bgmTvEpSorts) {
+    public void putUserEpisodeCollection(String bgmTvSubId, int sort, boolean isFinish,
+                                         boolean isPrivate) {
         Assert.hasText(bgmTvSubId, "'bgmTvSubId' must has text.");
+        Assert.isTrue(sort > 0, "'sort' must > 0.");
 
-        if (bgmTvEpSorts == null || bgmTvEpSorts.isEmpty()) {
-            log.warn("Skip patch, 'bgmTvEpSorts' is null nor empty: {}", bgmTvEpSorts);
-            return;
-        }
         Long subjectId = Long.parseLong(bgmTvSubId);
-
         // 先获取条目的所有剧集
         List<BgmTvEpisode> bgmTvEpisodes =
             findEpisodesBySubjectId(subjectId, BgmTvEpisodeType.POSITIVE, 0, 100);
 
         // 根据序号匹配过滤
-        List<Integer> epIds = bgmTvEpisodes.stream()
-            .filter(bgmTvEpisode -> bgmTvEpSorts.contains(bgmTvEpisode.getSort().intValue()))
+        Optional<Integer> epIdOp = bgmTvEpisodes.stream()
+            .filter(bgmTvEpisode -> sort == bgmTvEpisode.getSort().intValue())
             .map(BgmTvEpisode::getId)
-            .toList();
+            .findFirst();
+
+        if (epIdOp.isEmpty()) {
+            return;
+        }
 
         // 收藏条目，更新状态为在看
-        postUserSubjectCollection(String.valueOf(subjectId), BgmTVSubCollectionType.DOING, isPrivate);
+        postUserSubjectCollection(bgmTvSubId, DOING, isPrivate);
 
-        // 更新所有的剧集状态
+        Integer episodeId = epIdOp.get();
+        // 更新剧集状态
         try {
 
-            // https://api.bgm.tv/v0/users/-/collections/{subjectId}/episodes
+            // https://api.bgm.tv/v0/users/-/collections/-/episodes/{episodeId}
             final String url =
-                BgmTvApiConst.USER_COLLECTIONS_SUBJECT + '/' + subjectId + "/episodes";
+                BgmTvApiConst.USER_COLLECTIONS_SUBJECT + "/-/episodes" + '/' + episodeId;
 
             Map<String, Object> body = new HashMap<>();
             // 2: 看过
             // 0: 未收藏
             body.put("type", isFinish ? 2 : 0);
-            body.put("episode_id", epIds);
 
             HttpEntity<String> request = new HttpEntity<>(JsonUtils.obj2Json(body), headers);
 
-            RestTemplate template =
-                RestTemplateUtils.buildHttpComponentRestTemplate(null, null);
-            template.exchange(url, HttpMethod.PATCH, request, Map.class);
-            log.info("Mark subject[{}] isFinish=[{}] for episodes=[{}].",
-                subjectId, isFinish, epIds);
+            restTemplate.exchange(url, HttpMethod.PUT, request, Map.class);
+            log.info("Mark episode[{}] isFinish[{}] isPrivate[{}] for subject[{}] episode seq[{}].",
+                episodeId, isFinish, isPrivate, subjectId, sort);
         } catch (HttpClientErrorException exception) {
-            log.error("Patch user subject collection episodes stage fail", exception);
+            log.info("Put user episode collection fail, "
+                    + "episode[{}] isFinish[{}] isPrivate[{}] for subject[{}] episode seq[{}].",
+                episodeId, isFinish, isPrivate, subjectId, sort, exception);
         }
 
     }
+
+    // @Override
+    // public void patchSubjectEpisodeFinish(String bgmTvSubId, boolean isFinish,
+    //                                       boolean isPrivate, List<Integer> bgmTvEpSorts) {
+    //     Assert.hasText(bgmTvSubId, "'bgmTvSubId' must has text.");
+    //
+    //     if (bgmTvEpSorts == null || bgmTvEpSorts.isEmpty()) {
+    //         log.warn("Skip patch, 'bgmTvEpSorts' is null nor empty: {}", bgmTvEpSorts);
+    //         return;
+    //     }
+    //     Long subjectId = Long.parseLong(bgmTvSubId);
+    //
+    //     // 先获取条目的所有剧集
+    //     List<BgmTvEpisode> bgmTvEpisodes =
+    //         findEpisodesBySubjectId(subjectId, BgmTvEpisodeType.POSITIVE, 0, 100);
+    //
+    //     // 根据序号匹配过滤
+    //     List<Integer> epIds = bgmTvEpisodes.stream()
+    //         .filter(bgmTvEpisode -> bgmTvEpSorts.contains(bgmTvEpisode.getSort().intValue()))
+    //         .map(BgmTvEpisode::getId)
+    //         .toList();
+    //
+    //     // 收藏条目，更新状态为在看
+    //     postUserSubjectCollection(String.valueOf(subjectId), BgmTVSubCollectionType.DOING, isPrivate);
+    //
+    //     // 更新所有的剧集状态
+    //     try {
+    //
+    //         // https://api.bgm.tv/v0/users/-/collections/{subjectId}/episodes
+    //         final String url =
+    //             BgmTvApiConst.USER_COLLECTIONS_SUBJECT + '/' + subjectId + "/episodes";
+    //
+    //         Map<String, Object> body = new HashMap<>();
+    //         // 2: 看过
+    //         // 0: 未收藏
+    //         body.put("type", isFinish ? 2 : 0);
+    //         body.put("episode_id", epIds);
+    //
+    //         HttpEntity<String> request = new HttpEntity<>(JsonUtils.obj2Json(body), headers);
+    //
+    //         RestTemplate template =
+    //             RestTemplateUtils.buildHttpComponentRestTemplate(null, null);
+    //         template.exchange(url, HttpMethod.PATCH, request, Map.class);
+    //         log.info("Mark subject[{}] isFinish=[{}] for episodes=[{}].",
+    //             subjectId, isFinish, epIds);
+    //     } catch (HttpClientErrorException exception) {
+    //         log.error("Patch user subject collection episodes stage fail", exception);
+    //     }
+    //
+    // }
 
 
     //@Override

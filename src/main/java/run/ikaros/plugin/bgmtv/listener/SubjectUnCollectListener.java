@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 public class SubjectUnCollectListener implements ApplicationListener<SubjectUnCollectEvent> {
     @Override
     public void onApplicationEvent(SubjectUnCollectEvent event) {
-        log.debug("Receive SubjectUnCollectEvent subject collection[{}].", event.getSubjectCollection());
-        log.warn("Not support uncollect subject collection by api for bgm.tv");
+        // log.debug("Receive SubjectUnCollectEvent subject collection[{}].", event.getSubjectCollection());
+        // log.warn("Not support uncollect subject collection by api for bgm.tv");
     }
 }

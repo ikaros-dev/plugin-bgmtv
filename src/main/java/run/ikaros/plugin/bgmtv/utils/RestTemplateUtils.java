@@ -45,25 +45,6 @@ public class RestTemplateUtils {
         return restTemplate;
     }
 
-    public static synchronized RestTemplate buildHttpComponentRestTemplate(
-        @Nullable Integer readTimeout,
-        @Nullable Integer connectTimeout) {
-        if (httpComponentRestTemplate == null) {
-            httpComponentRestTemplate = new RestTemplate();
-            HttpComponentsClientHttpRequestFactory requestFactory =
-                new HttpComponentsClientHttpRequestFactory();
-            requestFactory.setConnectionRequestTimeout(
-                readTimeout == null ? DEFAULT_READ_TIMEOUT : readTimeout);
-            requestFactory.setConnectTimeout(
-                connectTimeout == null ? DEFAULT_CONNECT_TIMEOUT : connectTimeout);
-            httpComponentRestTemplate.setRequestFactory(requestFactory);
-            log.debug("Build a no proxy http component rest template: {}",
-                httpComponentRestTemplate);
-        }
-        return httpComponentRestTemplate;
-    }
-
-
     public static synchronized RestTemplate buildProxyRestTemplate(
         @Nonnull Proxy proxy,
         @Nullable Integer readTimeout,

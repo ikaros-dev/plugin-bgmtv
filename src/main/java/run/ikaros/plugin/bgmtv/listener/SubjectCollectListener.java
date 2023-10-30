@@ -8,6 +8,7 @@ import reactor.core.publisher.Mono;
 import run.ikaros.api.core.collection.SubjectCollection;
 import run.ikaros.api.core.collection.event.SubjectCollectEvent;
 import run.ikaros.api.core.setting.ConfigMap;
+import run.ikaros.api.core.subject.Subject;
 import run.ikaros.api.core.subject.SubjectOperate;
 import run.ikaros.api.core.subject.SubjectSync;
 import run.ikaros.api.custom.ReactiveCustomClient;
@@ -61,7 +62,6 @@ public class SubjectCollectListener {
         final CollectionType collectionType = subjectCollection.getType();
         final BgmTVSubCollectionType bgmTVSubCollectionType =
             convertToBgmTvSubCollectionType(collectionType);
-        final Boolean isPrivate = subjectCollection.getIsPrivate();
         getConfigMapIsSync()
             .filter(isSync -> isSync)
             .flatMap(isSync -> subjectOperate.findById(subjectId))
@@ -71,8 +71,11 @@ public class SubjectCollectListener {
             .map(subjectSyncs -> subjectSyncs.get(0))
             .map(SubjectSync::getPlatformId)
             .subscribe(bgmTvSubId -> getConfigMapNsfwIsPrivate()
-                .subscribe(nsfwPrivate -> bgmTvRepository.postUserSubjectCollection(
-                    bgmTvSubId, bgmTVSubCollectionType, nsfwPrivate)));
+                .flatMap(nsfwPrivate -> subjectOperate.findById(subjectId)
+                    .map(Subject::getNsfw)
+                    .map(nsfw -> nsfw && nsfwPrivate))
+                .subscribe(isPrivate -> bgmTvRepository.postUserSubjectCollection(
+                    bgmTvSubId, bgmTVSubCollectionType, isPrivate)));
     }
 
     private BgmTVSubCollectionType convertToBgmTvSubCollectionType(CollectionType collectionType) {

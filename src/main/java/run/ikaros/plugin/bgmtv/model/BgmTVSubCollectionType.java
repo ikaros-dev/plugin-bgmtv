@@ -30,4 +30,15 @@ public enum BgmTVSubCollectionType {
     public int getCode() {
         return code;
     }
+
+    public static BgmTVSubCollectionType codeOf(int code) {
+        return switch (code) {
+            case 1 -> BgmTVSubCollectionType.WISH;
+            case 3 -> BgmTVSubCollectionType.DOING;
+            case 2 -> BgmTVSubCollectionType.DONE;
+            case 4 -> BgmTVSubCollectionType.SHELVE;
+            case 5 -> BgmTVSubCollectionType.DISCARD;
+            default -> BgmTVSubCollectionType.WISH;
+        };
+    }
 }

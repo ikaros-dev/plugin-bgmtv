@@ -70,10 +70,15 @@ public interface BgmTvRepository {
     @Retryable
     BgmTvUserInfo getMe();
 
+
+
     @Retryable
     void postUserSubjectCollection(String bgmTvSubId, BgmTVSubCollectionType bgmTVSubCollectionType, Boolean isPrivate);
 
+    // @Retryable
+    // void patchSubjectEpisodeFinish(String bgmTvSubId, boolean isFinish,
+    //                                boolean isPrivate, List<Integer> bgmTvEpSorts);
+
     @Retryable
-    void patchSubjectEpisodeFinish(String bgmTvSubId, boolean isFinish,
-                                   boolean isPrivate, List<Integer> bgmTvEpSorts);
+    void putUserEpisodeCollection(String bgmTvSubId, int sort, boolean isFinish, boolean isPrivate);
 }
