@@ -14,6 +14,7 @@ import run.ikaros.api.core.subject.SubjectOperate;
 import run.ikaros.api.core.subject.SubjectSync;
 import run.ikaros.api.custom.ReactiveCustomClient;
 import run.ikaros.api.infra.exception.NotFoundException;
+import run.ikaros.api.store.enums.EpisodeGroup;
 import run.ikaros.api.store.enums.SubjectSyncPlatform;
 import run.ikaros.plugin.bgmtv.BgmTvPlugin;
 import run.ikaros.plugin.bgmtv.repository.BgmTvRepository;
@@ -81,6 +82,7 @@ public class EpisodeCollectionFinishChangeListener {
     private Mono<Integer> getSubjectEpsSeq(Long episodeId, Long subjectId) {
         return subjectOperate.findById(subjectId)
             .flatMapMany(subject -> Flux.fromStream(subject.getEpisodes().stream()))
+            .filter(episode -> EpisodeGroup.MAIN.equals(episode.getGroup()))
             .filter(episode -> episodeId.equals(episode.getId()))
             .map(Episode::getSequence)
             .collectList()
