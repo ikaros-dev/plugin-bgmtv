@@ -422,8 +422,6 @@ public class BgmTvRepositoryImpl
             return;
         }
 
-        // 收藏条目，更新状态为在看
-        postUserSubjectCollection(bgmTvSubId, DOING, isPrivate);
 
         Integer episodeId = epIdOp.get();
         // 更新剧集状态
@@ -444,9 +442,21 @@ public class BgmTvRepositoryImpl
             log.info("Mark episode[{}] isFinish[{}] isPrivate[{}] for subject[{}] episode seq[{}].",
                 episodeId, isFinish, isPrivate, subjectId, sort);
         } catch (HttpClientErrorException exception) {
-            log.info("Put user episode collection fail, "
-                    + "episode[{}] isFinish[{}] isPrivate[{}] for subject[{}] episode seq[{}].",
-                episodeId, isFinish, isPrivate, subjectId, sort, exception);
+            if (exception.getStatusCode().is4xxClientError()) {
+                Map map = exception.getResponseBodyAs(Map.class);
+                Object description = map.get("description");
+                if (description instanceof String
+                    && "you need to add subject to your collection first".equalsIgnoreCase(
+                    (String) description)) {
+                    // 收藏条目，更新状态为在看
+                    postUserSubjectCollection(bgmTvSubId, DOING, isPrivate);
+                    putUserEpisodeCollection(bgmTvSubId, sort, isFinish, isPrivate);
+                }
+            } else {
+                log.error("Put user episode collection fail, "
+                        + "episode[{}] isFinish[{}] isPrivate[{}] for subject[{}] episode seq[{}].",
+                    episodeId, isFinish, isPrivate, subjectId, sort, exception);
+            }
         }
 
     }

@@ -7,6 +7,9 @@ import run.ikaros.plugin.bgmtv.model.BgmTVSubCollectionType;
 import run.ikaros.plugin.bgmtv.model.BgmTvSubject;
 import run.ikaros.plugin.bgmtv.model.BgmTvUserInfo;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class BgmTvRepositoryImplTest {
@@ -62,4 +65,15 @@ class BgmTvRepositoryImplTest {
     //     bgmTvRepository.patchSubjectEpisodeFinish(String.valueOf(subjectId), true, false, sortIds);
     //
     // }
+
+
+    @Test
+    @Disabled
+    void putUserEpisodeCollection() {
+        final long subjectId = 373787;
+        bgmTvRepository.initRestTemplate(null);
+        bgmTvRepository.refreshHttpHeaders(System.getenv("IKAROS_TEST_TOKEN"));
+
+        bgmTvRepository.putUserEpisodeCollection(String.valueOf(subjectId), 1, true, false);
+    }
 }
