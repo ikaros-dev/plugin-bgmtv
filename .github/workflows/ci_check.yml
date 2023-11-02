@@ -54,8 +54,6 @@ jobs:
         run: chmod +x ./gradlew
       - name: Run tests
         run: ./gradlew test
-      - name: Generate jacoco unit test coverage report xml
-        run: ./gradlew jacocoTestReport
       - name: Upload build dir if current step run failed.
         uses: actions/upload-artifact@v3.1.2
         if: ${{ failure() }}
