@@ -50,6 +50,10 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
     public synchronized Mono<Subject> pull(String id) {
         Assert.hasText(id, "bgmtv id must has text.");
 
+        if (id.startsWith("https://")) {
+            id = id.replace("https://bgm.tv/subject/", "");
+        }
+
         BgmTvSubject bgmTvSubject = bgmTvRepository.getSubject(Long.valueOf(id));
         if (bgmTvSubject == null || bgmTvSubject.getId() == null) {
             log.warn("Pull subject is null, skip operate.");
