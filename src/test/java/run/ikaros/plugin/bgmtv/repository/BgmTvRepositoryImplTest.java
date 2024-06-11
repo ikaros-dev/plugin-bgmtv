@@ -1,5 +1,6 @@
 package run.ikaros.plugin.bgmtv.repository;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import run.ikaros.api.core.setting.ConfigMap;
@@ -7,7 +8,6 @@ import run.ikaros.plugin.bgmtv.model.BgmTVSubCollectionType;
 import run.ikaros.plugin.bgmtv.model.BgmTvSubject;
 import run.ikaros.plugin.bgmtv.model.BgmTvUserInfo;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,7 +46,7 @@ class BgmTvRepositoryImplTest {
         bgmTvRepository.initRestTemplate(null);
         bgmTvRepository.refreshHttpHeaders(System.getenv("IKAROS_TEST_TOKEN"));
         bgmTvRepository.postUserSubjectCollection(String.valueOf(subjectId),
-            BgmTVSubCollectionType.DONE, true);
+                BgmTVSubCollectionType.DONE, true);
     }
 
     // @Test
@@ -75,5 +75,14 @@ class BgmTvRepositoryImplTest {
         bgmTvRepository.refreshHttpHeaders(System.getenv("IKAROS_TEST_TOKEN"));
 
         bgmTvRepository.putUserEpisodeCollection(String.valueOf(subjectId), 1, true, false);
+    }
+
+    @Test
+    @Disabled
+    void searchSubjectWithOldApi() {
+        final String keyword = "MyGo";
+        bgmTvRepository.initRestTemplate(null);
+        List<BgmTvSubject> bgmTvSubjects = bgmTvRepository.searchSubjectWithOldApi(keyword, 2);
+        Assertions.assertThat(bgmTvSubjects).isNotEmpty();
     }
 }
