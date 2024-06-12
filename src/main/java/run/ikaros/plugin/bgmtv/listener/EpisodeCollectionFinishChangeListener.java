@@ -6,6 +6,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import run.ikaros.api.core.collection.SubjectCollection;
 import run.ikaros.api.core.collection.SubjectCollectionOperate;
 import run.ikaros.api.core.collection.event.EpisodeCollectionFinishChangeEvent;
 import run.ikaros.api.core.setting.ConfigMap;
@@ -15,6 +16,7 @@ import run.ikaros.api.core.subject.SubjectOperate;
 import run.ikaros.api.core.subject.SubjectSync;
 import run.ikaros.api.custom.ReactiveCustomClient;
 import run.ikaros.api.infra.exception.NotFoundException;
+import run.ikaros.api.store.enums.CollectionType;
 import run.ikaros.api.store.enums.EpisodeGroup;
 import run.ikaros.api.store.enums.SubjectSyncPlatform;
 import run.ikaros.plugin.bgmtv.BgmTvPlugin;
@@ -62,10 +64,11 @@ public class EpisodeCollectionFinishChangeListener {
         final long episodeId = event.getEpisodeId();
         final boolean finish = event.isFinish();
         final long subjectId = event.getSubjectId();
+        final long userId = event.getUserId();
 
         getConfigMapIsSync()
                 .filter(isSync -> isSync)
-                .flatMap(isSync -> getDoingBgmDoTvSubId(subjectId))
+                .flatMap(isSync -> getDoingBgmDoTvSubId(subjectId, userId))
                 .subscribe(bgmTvSub -> getSubjectEpsSeq(episodeId, subjectId)
                         .subscribe(seq -> getConfigMapNsfwIsPrivate()
                                 .flatMap(nsfwPrivate -> subjectOperate.findById(subjectId)
@@ -89,8 +92,11 @@ public class EpisodeCollectionFinishChangeListener {
                 .map(integers -> integers.get(0));
     }
 
-    private Mono<String> getDoingBgmDoTvSubId(Long subjectId) {
-        return subjectOperate.findById(subjectId)
+    private Mono<String> getDoingBgmDoTvSubId(Long subjectId, Long userId) {
+        return subjectCollectionOperate.findCollection(userId, subjectId)
+                .map(SubjectCollection::getType)
+                .filter(CollectionType.DOING::equals)
+                .flatMap(doing -> subjectOperate.findById(subjectId))
                 .flatMapMany(subject -> Flux.fromStream(subject.getSyncs().stream()))
                 .filter(subjectSync -> SubjectSyncPlatform.BGM_TV.equals(subjectSync.getPlatform()))
                 .collectList()
