@@ -135,6 +135,9 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
 
         subject = mergeBgmtvSubjectEpisodes(subject, episodes);
 
+        // TODO save sync relation when not exists
+
+
         return Mono.just(subject);
     }
 
