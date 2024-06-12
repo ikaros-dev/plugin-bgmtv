@@ -68,6 +68,7 @@ public class SubjectCollectListener {
             .flatMapMany(subject -> Flux.fromStream(subject.getSyncs().stream()))
             .filter(subjectSync -> SubjectSyncPlatform.BGM_TV.equals(subjectSync.getPlatform()))
             .collectList()
+            .filter(subjectSyncs -> !subjectSyncs.isEmpty())
             .map(subjectSyncs -> subjectSyncs.get(0))
             .map(SubjectSync::getPlatformId)
             .subscribe(bgmTvSubId -> getConfigMapNsfwIsPrivate()
