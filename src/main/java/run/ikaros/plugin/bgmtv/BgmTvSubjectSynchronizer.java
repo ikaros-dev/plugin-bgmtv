@@ -11,7 +11,10 @@ import run.ikaros.api.core.attachment.Attachment;
 import run.ikaros.api.core.attachment.AttachmentConst;
 import run.ikaros.api.core.attachment.AttachmentOperate;
 import run.ikaros.api.core.attachment.AttachmentUploadCondition;
-import run.ikaros.api.core.subject.*;
+import run.ikaros.api.core.subject.Episode;
+import run.ikaros.api.core.subject.Subject;
+import run.ikaros.api.core.subject.SubjectSync;
+import run.ikaros.api.core.subject.SubjectSynchronizer;
 import run.ikaros.api.infra.utils.FileUtils;
 import run.ikaros.api.store.enums.EpisodeGroup;
 import run.ikaros.api.store.enums.SubjectSyncPlatform;
@@ -34,14 +37,11 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
 
     private final BgmTvRepository bgmTvRepository;
     private final AttachmentOperate attachmentOperate;
-    private final SubjectSyncPlatformOperate subjectSyncPlatformOperate;
 
     public BgmTvSubjectSynchronizer(BgmTvRepository bgmTvRepository,
-                                    AttachmentOperate attachmentOperate,
-                                    SubjectSyncPlatformOperate subjectSyncPlatformOperate) {
+                                    AttachmentOperate attachmentOperate) {
         this.bgmTvRepository = bgmTvRepository;
         this.attachmentOperate = attachmentOperate;
-        this.subjectSyncPlatformOperate = subjectSyncPlatformOperate;
     }
 
     @Override
@@ -139,14 +139,17 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
 
         subject = mergeBgmtvSubjectEpisodes(subject, episodes);
 
-//        List<SubjectSync> syncs = subject.getSyncs();
-//        if (syncs == null) { syncs = new ArrayList<>(); }
-//        syncs.add(SubjectSync.builder()
-//                .subjectId(subject.getId())
-//                .platform(SubjectSyncPlatform.BGM_TV)
-//                .syncTime(LocalDateTime.now())
-//                .platformId(platformId).build());
-//        subject.setSyncs(syncs);
+        // save sync relation when not exists
+        List<SubjectSync> syncs = subject.getSyncs();
+        if (syncs == null) {
+            syncs = new ArrayList<>();
+        }
+        syncs.add(SubjectSync.builder()
+                .subjectId(subject.getId())
+                .platform(SubjectSyncPlatform.BGM_TV)
+                .syncTime(LocalDateTime.now())
+                .platformId(platformId).build());
+        subject.setSyncs(syncs);
 
         DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
 
@@ -159,26 +162,15 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
                         .parentId(AttachmentConst.COVER_DIRECTORY_ID)
                         .name(
                                 System.currentTimeMillis()
-                                + "-" + (StringUtils.isNotBlank(bgmTvSubject.getNameCn())
+                                        + "-" + (StringUtils.isNotBlank(bgmTvSubject.getNameCn())
                                         ? bgmTvSubject.getNameCn() : bgmTvSubject.getName())
-                                + "." + FileUtils.parseFilePostfix(FileUtils.parseFileName(bgmTvSubject.getImages().getLarge()))
+                                        + "." + FileUtils.parseFilePostfix(FileUtils.parseFileName(bgmTvSubject.getImages().getLarge()))
                         )
                         .dataBufferFlux(Mono.just(dataBufferFactory.wrap(bytes)).flux())
                         .build())
                 .flatMap(attachmentOperate::upload)
                 .map(Attachment::getUrl)
                 .map(subject::setCover)
-
-                // save sync relation when not exists
-                .flatMap(sub -> subjectSyncPlatformOperate
-                        .findBySubjectIdAndPlatformAndPlatformId(sub.getId(),
-                                SubjectSyncPlatform.BGM_TV, platformId))
-                .switchIfEmpty(subjectSyncPlatformOperate
-                        .save(SubjectSync.builder()
-                                .subjectId(subject.getId())
-                                .platform(SubjectSyncPlatform.BGM_TV)
-                                .syncTime(LocalDateTime.now())
-                                .platformId(platformId).build()))
 
                 .then(Mono.just(subject));
     }
