@@ -74,10 +74,10 @@ public class BgmTvRepositoryImpl
     }
 
     public void initRestTemplate(ConfigMap configMap) {
-        log.info("init rest template by config map : {}", configMap);
+        log.debug("init rest template by config map : {}", configMap);
         if (configMap == null || configMap.getData() == null) {
             restTemplate = RestTemplateUtils.buildRestTemplate(3000, 3000);
-            log.info("config rest template by no proxy.");
+            log.error("config rest template by no proxy.");
             return;
         }
         Map<String, String> map = configMap.getData();
@@ -85,7 +85,7 @@ public class BgmTvRepositoryImpl
         if (StringUtils.isBlank(enableProxy) ||
             !Boolean.parseBoolean(enableProxy)) {
             restTemplate = RestTemplateUtils.buildRestTemplate(3000, 3000);
-            log.info("config rest template by no proxy.");
+            log.error("config rest template by no proxy.");
             return;
         }
         String proxyType = String.valueOf(map.get("proxyType"));
