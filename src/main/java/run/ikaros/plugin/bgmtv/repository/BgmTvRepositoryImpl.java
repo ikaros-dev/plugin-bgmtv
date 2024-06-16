@@ -51,7 +51,7 @@ public class BgmTvRepositoryImpl
         reactiveCustomClient.findOne(ConfigMap.class, BgmTvPlugin.NAME)
             .onErrorResume(NotFoundException.class, e -> Mono.empty())
             .subscribe(configMap -> {
-                log.info("init rest temp when app ready and config exits, configmap: {}",
+                log.debug("init rest temp when app ready and config exits, configmap: {}",
                     configMap);
 
                 initRestTemplate(configMap);
