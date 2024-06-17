@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -95,7 +96,8 @@ public class BgmTvRepositoryImpl
             && Boolean.parseBoolean(enableProxy)
             && StringUtils.isNotBlank(proxyType)
             && StringUtils.isNotBlank(host)
-            && StringUtils.isNotBlank(port)) {
+            && StringUtils.isNotBlank(port)
+            && NumberUtils.isDigits(port)) {
             InetSocketAddress inetSocketAddress =
                 new InetSocketAddress(host, Integer.parseInt(port));
             switch (proxyType) {
@@ -305,8 +307,10 @@ public class BgmTvRepositoryImpl
     @Override
     public byte[] downloadCover(@Nonnull String url) {
         Assert.hasText(url, "'url' must has text");
-        ResponseEntity<byte[]> responseEntity =
-            restTemplate.exchange(url, HttpMethod.GET, null, byte[].class);
+        ResponseEntity<byte[]> responseEntity = restTemplate
+                .exchange(url, HttpMethod.GET,
+                        new HttpEntity<>(null, headers),
+                        byte[].class);
         return responseEntity.getBody();
     }
 
