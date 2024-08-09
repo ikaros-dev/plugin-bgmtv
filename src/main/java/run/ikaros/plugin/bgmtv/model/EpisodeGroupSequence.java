@@ -11,5 +11,5 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode
 public class EpisodeGroupSequence {
     private EpisodeGroup group;
-    private Integer sequence;
+    private Float sequence;
 }

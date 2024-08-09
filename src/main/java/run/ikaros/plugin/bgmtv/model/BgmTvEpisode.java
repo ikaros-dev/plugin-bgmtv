@@ -15,7 +15,7 @@ public class BgmTvEpisode {
     @JsonProperty("name_cn")
     private String nameCn;
     private Double sort;
-    private Integer ep;
+    private Float ep;
     @JsonProperty("airdate")
     private String airDate;
     private Integer comment;
@@ -80,11 +80,11 @@ public class BgmTvEpisode {
         return this;
     }
 
-    public Integer getEp() {
+    public Float getEp() {
         return ep;
     }
 
-    public BgmTvEpisode setEp(Integer ep) {
+    public BgmTvEpisode setEp(Float ep) {
         this.ep = ep;
         return this;
     }

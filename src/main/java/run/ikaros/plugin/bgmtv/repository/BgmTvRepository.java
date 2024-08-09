@@ -80,5 +80,5 @@ public interface BgmTvRepository {
     //                                boolean isPrivate, List<Integer> bgmTvEpSorts);
 
     @Retryable
-    void putUserEpisodeCollection(String bgmTvSubId, int sort, boolean isFinish, boolean isPrivate);
+    void putUserEpisodeCollection(String bgmTvSubId, float sort, boolean isFinish, boolean isPrivate);
 }

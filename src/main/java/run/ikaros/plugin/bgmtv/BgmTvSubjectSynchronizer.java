@@ -175,6 +175,12 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
                 .then(Mono.just(subject));
     }
 
+    @Override
+    public Mono<Subject> pullSelfAndRelations(String s) {
+        // TODO pull self and all relations
+        return Mono.empty();
+    }
+
     private Subject mergeBgmTvSubject(Subject subject, BgmTvSubject bgmTvSubject) {
         if (Objects.isNull(bgmTvSubject)) {
             return subject;
@@ -238,15 +244,15 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
                 .setAirTime(convertAirTime(bgmTvEpisode.getAirDate()))
                 .setGroup(convertEpisodeType(bgmTvEpisode.getType()))
                 .setSequence((Objects.nonNull(bgmTvEpisode.getSort())
-                        ? bgmTvEpisode.getSort().intValue() : bgmTvEpisode.getEp()));
+                        ? bgmTvEpisode.getSort().floatValue() : bgmTvEpisode.getEp()));
     }
 
     private Episode convertMusicEpisode(BgmTvEpisode bgmTvEpisode) {
         log.debug("Pull episode:[{}] form by platform:[{}]",
                 bgmTvEpisode.getName(), getSyncPlatform());
-        int originalSeq = Objects.nonNull(bgmTvEpisode.getSort())
-                ? bgmTvEpisode.getSort().intValue() : bgmTvEpisode.getEp();
-        originalSeq = Integer.parseInt(bgmTvEpisode.getDisc() + originalSeq);
+        float originalSeq = Objects.nonNull(bgmTvEpisode.getSort())
+                ? bgmTvEpisode.getSort().floatValue() : bgmTvEpisode.getEp();
+        originalSeq = Float.parseFloat(bgmTvEpisode.getDisc() + originalSeq);
         return new Episode()
                 .setName(bgmTvEpisode.getName())
                 .setNameCn(bgmTvEpisode.getNameCn())

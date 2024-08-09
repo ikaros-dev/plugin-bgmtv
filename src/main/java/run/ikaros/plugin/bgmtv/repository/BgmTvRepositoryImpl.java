@@ -406,7 +406,7 @@ public class BgmTvRepositoryImpl
     }
 
     @Override
-    public void putUserEpisodeCollection(String bgmTvSubId, int sort, boolean isFinish,
+    public void putUserEpisodeCollection(String bgmTvSubId, float sort, boolean isFinish,
                                          boolean isPrivate) {
         Assert.hasText(bgmTvSubId, "'bgmTvSubId' must has text.");
         Assert.isTrue(sort > 0, "'sort' must > 0.");
