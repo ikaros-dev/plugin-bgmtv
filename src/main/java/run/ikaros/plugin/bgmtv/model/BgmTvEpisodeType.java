@@ -18,7 +18,11 @@ public enum BgmTvEpisodeType {
     ED(3),
 
 
-    PV(4)
+    PV(4),
+
+    MAD(5),
+
+    OTHER(6);
     ;
     private final int code;
 

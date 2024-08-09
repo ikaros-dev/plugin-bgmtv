@@ -339,7 +339,7 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
             case POSITIVE -> {
                 return EpisodeGroup.MAIN;
             }
-            case SPECIAL -> {
+            case SPECIAL, MAD -> {
                 return EpisodeGroup.SPECIAL_PROMOTION;
             }
             case OP -> {
