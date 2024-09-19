@@ -20,5 +20,5 @@ public interface BgmTvApiConst {
     String USER_COLLECTIONS_SUBJECT= BASE + "/v0/users/-/collections";
 
     Integer DEFAULT_OFFSET = 0;
-    Integer DEFAULT_LIMIT = 50;
+    Integer DEFAULT_LIMIT = 100;
 }
