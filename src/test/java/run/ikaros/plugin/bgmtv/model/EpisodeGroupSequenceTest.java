@@ -15,7 +15,7 @@ class EpisodeGroupSequenceTest {
     @Test
     void testEquals() {
         EpisodeGroup group = EpisodeGroup.MAIN;
-        Integer seq = new Random().nextInt();
+        Float seq = new Random().nextFloat();
 
         EpisodeGroupSequence groupSequence = EpisodeGroupSequence
             .builder().group(group).sequence(seq).build();
@@ -26,7 +26,7 @@ class EpisodeGroupSequenceTest {
         Assertions.assertThat(groupSequence).isEqualTo(newGroupSeq);
 
 
-        Map<EpisodeGroupSequence, Integer> map = new HashMap<>();
+        Map<EpisodeGroupSequence, Float> map = new HashMap<>();
         map.put(groupSequence, seq);
 
         Assertions.assertThat(map.containsKey(newGroupSeq)).isTrue();
