@@ -120,9 +120,9 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
             byte[] bytes = bgmTvRepository.downloadCover(coverUrl);
             DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
             return tagsMono.then(attachmentOperate.upload(AttachmentUploadCondition.builder()
-                    .parentId(AttachmentConst.COVER_DIRECTORY_ID)
-                    .name(coverFileName).dataBufferFlux(Mono.just(dataBufferFactory.wrap(bytes)).flux())
-                    .build()))
+                            .parentId(AttachmentConst.COVER_DIRECTORY_ID)
+                            .name(coverFileName).dataBufferFlux(Mono.just(dataBufferFactory.wrap(bytes)).flux())
+                            .build()))
                     .map(Attachment::getUrl)
                     .map(subject::setCover);
         }
@@ -170,7 +170,27 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
 
         DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
 
-        return Mono.just(subject)
+
+        // merge tags
+        return tagOperate.findAll(TagType.SUBJECT, subject.getId(), null)
+                .map(Tag::getName)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toSet())
+                .flatMapMany(existsTags ->
+                        Flux.fromStream(bgmTvSubject.getTags().parallelStream())
+                        .map(BgmTvTag::getName)
+                        .filter(bgmTvTagName -> !existsTags.contains(bgmTvTagName))
+                )
+                .map(name -> Tag.builder()
+                        .type(TagType.SUBJECT)
+                        .masterId(Long.valueOf(bgmTvSubject.getId()))
+                        .name(name)
+                        .createTime(LocalDateTime.now())
+                        .build())
+                .flatMap(tagOperate::create)
+                .collectList()
+                // merge cover
+                .then(Mono.just(subject))
                 .filter(sub -> StringUtils.isBlank(sub.getCover()))
                 .filter(cover -> StringUtils.isNotBlank(bgmTvSubject.getImages().getLarge()))
                 .map(cover -> bgmTvSubject.getImages().getLarge())
