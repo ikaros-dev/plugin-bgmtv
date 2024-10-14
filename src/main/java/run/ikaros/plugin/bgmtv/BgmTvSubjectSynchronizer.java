@@ -6,6 +6,7 @@ import org.pf4j.Extension;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.util.Assert;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import run.ikaros.api.core.attachment.Attachment;
 import run.ikaros.api.core.attachment.AttachmentConst;
@@ -15,14 +16,14 @@ import run.ikaros.api.core.subject.Episode;
 import run.ikaros.api.core.subject.Subject;
 import run.ikaros.api.core.subject.SubjectSync;
 import run.ikaros.api.core.subject.SubjectSynchronizer;
+import run.ikaros.api.core.tag.Tag;
+import run.ikaros.api.core.tag.TagOperate;
 import run.ikaros.api.infra.utils.FileUtils;
 import run.ikaros.api.store.enums.EpisodeGroup;
 import run.ikaros.api.store.enums.SubjectSyncPlatform;
 import run.ikaros.api.store.enums.SubjectType;
-import run.ikaros.plugin.bgmtv.model.BgmTvEpisode;
-import run.ikaros.plugin.bgmtv.model.BgmTvEpisodeType;
-import run.ikaros.plugin.bgmtv.model.BgmTvSubject;
-import run.ikaros.plugin.bgmtv.model.EpisodeGroupSequence;
+import run.ikaros.api.store.enums.TagType;
+import run.ikaros.plugin.bgmtv.model.*;
 import run.ikaros.plugin.bgmtv.repository.BgmTvRepository;
 
 import java.time.LocalDateTime;
@@ -30,6 +31,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Extension
@@ -37,11 +39,13 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
 
     private final BgmTvRepository bgmTvRepository;
     private final AttachmentOperate attachmentOperate;
+    private final TagOperate tagOperate;
 
     public BgmTvSubjectSynchronizer(BgmTvRepository bgmTvRepository,
-                                    AttachmentOperate attachmentOperate) {
+                                    AttachmentOperate attachmentOperate, TagOperate tagOperate) {
         this.bgmTvRepository = bgmTvRepository;
         this.attachmentOperate = attachmentOperate;
+        this.tagOperate = tagOperate;
     }
 
     @Override
@@ -91,6 +95,19 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
                         .setPlatform(getSyncPlatform())
                         .setPlatformId(id)));
 
+        // save bgmtv tags
+        Set<String> bgmTvSubTagNames = bgmTvSubject.getTags().stream()
+                .map(BgmTvTag::getName).collect(Collectors.toSet());
+        Mono<List<Tag>> tagsMono = Flux.fromStream(bgmTvSubTagNames.parallelStream())
+                .map(tagName -> Tag.builder()
+                        .createTime(LocalDateTime.now())
+                        .type(TagType.SUBJECT)
+                        .masterId(subject.getId())
+                        .name(tagName)
+                        .build())
+                .flatMap(tagOperate::create)
+                .collectList();
+
         // download cover image and update url
         if (StringUtils.isNotBlank(subject.getCover())
                 && subject.getCover().startsWith("http")) {
@@ -102,14 +119,14 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
                             + "." + FileUtils.parseFilePostfix(FileUtils.parseFileName(coverUrl));
             byte[] bytes = bgmTvRepository.downloadCover(coverUrl);
             DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
-            return attachmentOperate.upload(AttachmentUploadCondition.builder()
-                            .parentId(AttachmentConst.COVER_DIRECTORY_ID)
-                            .name(coverFileName).dataBufferFlux(Mono.just(dataBufferFactory.wrap(bytes)).flux())
-                            .build())
+            return tagsMono.then(attachmentOperate.upload(AttachmentUploadCondition.builder()
+                    .parentId(AttachmentConst.COVER_DIRECTORY_ID)
+                    .name(coverFileName).dataBufferFlux(Mono.just(dataBufferFactory.wrap(bytes)).flux())
+                    .build()))
                     .map(Attachment::getUrl)
                     .map(subject::setCover);
         }
-        return Mono.just(subject);
+        return tagsMono.then(Mono.just(subject));
     }
 
     @Override
