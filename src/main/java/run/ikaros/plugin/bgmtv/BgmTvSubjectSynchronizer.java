@@ -104,6 +104,7 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
                         .type(TagType.SUBJECT)
                         .masterId(subject.getId())
                         .name(tagName)
+                        .userId(-1L)
                         .build())
                 .flatMap(tagOperate::create)
                 .collectList();
@@ -186,6 +187,7 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
                         .masterId(Long.valueOf(bgmTvSubject.getId()))
                         .name(name)
                         .createTime(LocalDateTime.now())
+                        .userId(-1L)
                         .build())
                 .flatMap(tagOperate::create)
                 .collectList()
