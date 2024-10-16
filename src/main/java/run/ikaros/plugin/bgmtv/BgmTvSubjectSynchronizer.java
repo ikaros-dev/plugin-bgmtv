@@ -1,5 +1,7 @@
 package run.ikaros.plugin.bgmtv;
 
+import static run.ikaros.api.infra.utils.ReactiveBeanUtils.copyProperties;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -9,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +35,7 @@ import run.ikaros.api.core.subject.SubjectSynchronizer;
 import run.ikaros.api.core.tag.Tag;
 import run.ikaros.api.core.tag.TagOperate;
 import run.ikaros.api.infra.utils.FileUtils;
+import run.ikaros.api.infra.utils.ReactiveBeanUtils;
 import run.ikaros.api.store.enums.EpisodeGroup;
 import run.ikaros.api.store.enums.SubjectSyncPlatform;
 import run.ikaros.api.store.enums.SubjectType;
@@ -113,15 +117,15 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
             .map(BgmTvTag::getName).collect(Collectors.toSet());
         Mono<List<Tag>> tagsMono =
             episodesMono.thenMany(Flux.fromStream(bgmTvSubTagNames.parallelStream()))
-            .map(tagName -> Tag.builder()
-                .createTime(LocalDateTime.now())
-                .type(TagType.SUBJECT)
-                .masterId(subject.getId())
-                .name(tagName)
-                .userId(-1L)
-                .build())
-            .flatMap(tagOperate::create)
-            .collectList();
+                .map(tagName -> Tag.builder()
+                    .createTime(LocalDateTime.now())
+                    .type(TagType.SUBJECT)
+                    .masterId(subject.getId())
+                    .name(tagName)
+                    .userId(-1L)
+                    .build())
+                .flatMap(tagOperate::create)
+                .collectList();
 
         // save subject sync entity
         SubjectSync subjectSync = SubjectSync.builder()
@@ -158,6 +162,7 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
     public Mono<Subject> merge(Subject subject, String platformId) {
         Assert.notNull(subject, "subject must not null.");
         Assert.hasText(platformId, "bgmtv id must has text.");
+        final Long subjectId = subject.getId();
 
         // search bgmtv subject info
         BgmTvSubject bgmTvSubject = bgmTvRepository.getSubject(Long.valueOf(platformId));
@@ -171,7 +176,7 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
         log.info("Merge subject:[{}] by platform:[{}] and id:[{}]",
             Objects.requireNonNull(subject).getName(), getSyncPlatform().name(), platformId);
 
-        /*
+
         // merge bgmtv subject episodes
         List<Episode> episodes =
             bgmTvRepository.findEpisodesBySubjectId(Long.valueOf(platformId), null,
@@ -180,27 +185,35 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
                 .map(this::convertEpisode)
                 .toList();
 
+        Mono<List<Episode>> episodesMono = Flux.fromStream(episodes.stream())
+            .flatMap(episode -> episodeOperate.findBySubjectIdAndGroupAndSequence(
+                    subjectId, episode.getGroup(), episode.getSequence())
+                .flatMap(e -> copyProperties(episode, e))
+                .switchIfEmpty(Mono.just(episode))
+                .map(e -> e.setSubjectId(subjectId))
+                .flatMap(episodeOperate::save)
+                .onErrorResume(RuntimeException.class, e -> {
+                    log.warn("merge single episode fail: ", e);
+                    return Mono.empty();
+                })
+            )
+            .collectList();
 
-        subject = mergeBgmtvSubjectEpisodes(subject, episodes);
-
-        // save sync relation when not exists
-        List<SubjectSync> syncs = subject.getSyncs();
-        if (syncs == null) {
-            syncs = new ArrayList<>();
-        }
-        syncs.add(SubjectSync.builder()
-                .subjectId(subject.getId())
-                .platform(SubjectSyncPlatform.BGM_TV)
-                .syncTime(LocalDateTime.now())
-                .platformId(platformId).build());
-        subject.setSyncs(syncs);
-        */
+        // save subject sync entity
+        SubjectSync subjectSync = SubjectSync.builder()
+            .platform(getSyncPlatform())
+            .platformId(platformId)
+            .subjectId(subjectId)
+            .syncTime(LocalDateTime.now())
+            .build();
+        Mono<SubjectSync> syncMono =
+            episodesMono.then(syncOperate.findBySubjectIdAndPlatformAndPlatformId(
+                    subjectId, getSyncPlatform(), platformId))
+                .switchIfEmpty(syncOperate.save(subjectSync));
 
         DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
-
-
         // merge tags
-        return tagOperate.findAll(TagType.SUBJECT, subject.getId(), null)
+        return syncMono.thenMany(tagOperate.findAll(TagType.SUBJECT, subject.getId(), null))
             .map(Tag::getName)
             .filter(StringUtils::isNotBlank)
             .collect(Collectors.toSet())
