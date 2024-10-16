@@ -11,9 +11,11 @@ import run.ikaros.api.core.collection.SubjectCollectionOperate;
 import run.ikaros.api.core.collection.event.EpisodeCollectionFinishChangeEvent;
 import run.ikaros.api.core.setting.ConfigMap;
 import run.ikaros.api.core.subject.Episode;
+import run.ikaros.api.core.subject.EpisodeOperate;
 import run.ikaros.api.core.subject.Subject;
 import run.ikaros.api.core.subject.SubjectOperate;
 import run.ikaros.api.core.subject.SubjectSync;
+import run.ikaros.api.core.subject.SubjectSyncPlatformOperate;
 import run.ikaros.api.custom.ReactiveCustomClient;
 import run.ikaros.api.infra.exception.NotFoundException;
 import run.ikaros.api.store.enums.CollectionType;
@@ -29,15 +31,21 @@ public class EpisodeCollectionFinishChangeListener {
     private final BgmTvRepository bgmTvRepository;
     private final ReactiveCustomClient customClient;
     private final SubjectCollectionOperate subjectCollectionOperate;
+    private final EpisodeOperate episodeOperate;
+    private final SubjectSyncPlatformOperate syncPlatformOperate;
 
     public EpisodeCollectionFinishChangeListener(SubjectOperate subjectOperate,
                                                  BgmTvRepository bgmTvRepository,
                                                  ReactiveCustomClient customClient,
-                                                 SubjectCollectionOperate subjectCollectionOperate) {
+                                                 SubjectCollectionOperate subjectCollectionOperate,
+                                                 EpisodeOperate episodeOperate,
+                                                 SubjectSyncPlatformOperate syncPlatformOperate) {
         this.subjectOperate = subjectOperate;
         this.bgmTvRepository = bgmTvRepository;
         this.customClient = customClient;
         this.subjectCollectionOperate = subjectCollectionOperate;
+        this.episodeOperate = episodeOperate;
+        this.syncPlatformOperate = syncPlatformOperate;
     }
 
     public Mono<Boolean> getConfigMapIsSync() {
@@ -82,27 +90,23 @@ public class EpisodeCollectionFinishChangeListener {
 
 
     private Mono<Float> getSubjectEpsSeq(Long episodeId, Long subjectId) {
-        return subjectOperate.findById(subjectId)
-                .flatMapMany(subject -> Flux.fromStream(subject.getEpisodes().stream()))
-                .filter(episode -> EpisodeGroup.MAIN.equals(episode.getGroup()))
-                .filter(episode -> episodeId.equals(episode.getId()))
-                .map(Episode::getSequence)
-                .collectList()
-                .filter(integers -> !integers.isEmpty())
-                .map(integers -> integers.get(0));
+        return episodeOperate.findAllBySubjectId(subjectId)
+            .filter(episode -> EpisodeGroup.MAIN.equals(episode.getGroup()))
+            .filter(episode -> episodeId.equals(episode.getId()))
+            .map(Episode::getSequence)
+            .collectList()
+            .filter(sequences -> !sequences.isEmpty())
+            .map(sequences -> sequences.get(0));
     }
 
     private Mono<String> getDoingBgmDoTvSubId(Long subjectId, Long userId) {
         return subjectCollectionOperate.findCollection(userId, subjectId)
-                .map(SubjectCollection::getType)
-                .filter(CollectionType.DOING::equals)
-                .flatMap(doing -> subjectOperate.findById(subjectId))
-                .flatMapMany(subject -> Flux.fromStream(subject.getSyncs().stream()))
-                .filter(subjectSync -> SubjectSyncPlatform.BGM_TV.equals(subjectSync.getPlatform()))
-                .collectList()
-                .filter(subjectSyncs -> !subjectSyncs.isEmpty())
-                .map(subjectSyncs -> subjectSyncs.get(0))
-                .map(SubjectSync::getPlatformId);
+            .map(SubjectCollection::getType)
+            .filter(CollectionType.DOING::equals)
+            .flatMap(doing -> syncPlatformOperate.findSubjectSyncBySubjectIdAndPlatform(
+                subjectId, SubjectSyncPlatform.BGM_TV
+            ))
+            .map(SubjectSync::getPlatformId);
     }
 
 }

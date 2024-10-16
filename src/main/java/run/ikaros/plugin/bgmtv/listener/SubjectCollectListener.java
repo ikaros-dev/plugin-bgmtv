@@ -11,6 +11,7 @@ import run.ikaros.api.core.setting.ConfigMap;
 import run.ikaros.api.core.subject.Subject;
 import run.ikaros.api.core.subject.SubjectOperate;
 import run.ikaros.api.core.subject.SubjectSync;
+import run.ikaros.api.core.subject.SubjectSyncPlatformOperate;
 import run.ikaros.api.custom.ReactiveCustomClient;
 import run.ikaros.api.infra.exception.NotFoundException;
 import run.ikaros.api.store.enums.CollectionType;
@@ -27,13 +28,16 @@ public class SubjectCollectListener {
     private final BgmTvRepository bgmTvRepository;
     private final SubjectOperate subjectOperate;
     private final ReactiveCustomClient customClient;
+    private final SubjectSyncPlatformOperate syncPlatformOperate;
 
 
     public SubjectCollectListener(BgmTvRepository bgmTvRepository, SubjectOperate subjectOperate,
-                                  ReactiveCustomClient customClient) {
+                                  ReactiveCustomClient customClient,
+                                  SubjectSyncPlatformOperate syncPlatformOperate) {
         this.bgmTvRepository = bgmTvRepository;
         this.subjectOperate = subjectOperate;
         this.customClient = customClient;
+        this.syncPlatformOperate = syncPlatformOperate;
     }
 
     public Mono<Boolean> getConfigMapIsSync() {
@@ -64,13 +68,10 @@ public class SubjectCollectListener {
             convertToBgmTvSubCollectionType(collectionType);
         getConfigMapIsSync()
             .filter(isSync -> isSync)
-            .flatMap(isSync -> subjectOperate.findById(subjectId))
-            .flatMapMany(subject -> Flux.fromStream(subject.getSyncs().stream()))
-            .filter(subjectSync -> SubjectSyncPlatform.BGM_TV.equals(subjectSync.getPlatform()))
-            .collectList()
-            .filter(subjectSyncs -> !subjectSyncs.isEmpty())
-            .map(subjectSyncs -> subjectSyncs.get(0))
-            .map(SubjectSync::getPlatformId)
+            .flatMap(isSync -> syncPlatformOperate.findSubjectSyncBySubjectIdAndPlatform(
+                subjectId, SubjectSyncPlatform.BGM_TV
+            )).map(SubjectSync::getPlatformId)
+
             .subscribe(bgmTvSubId -> getConfigMapNsfwIsPrivate()
                 .flatMap(nsfwPrivate -> subjectOperate.findById(subjectId)
                     .map(Subject::getNsfw)
