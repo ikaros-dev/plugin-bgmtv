@@ -81,6 +81,7 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
         if (id.startsWith("https://")) {
             id = id.replace("https://bgm.tv/subject/", "");
         }
+        final Long subjectId = Long.valueOf(id);
 
         BgmTvSubject bgmTvSubject = bgmTvRepository.getSubject(Long.valueOf(id));
         if (bgmTvSubject == null || bgmTvSubject.getId() == null) {
@@ -108,9 +109,8 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
                 .toList();
         log.info("Pull episode count:[{}] by platform:[{}] and id:[{}]",
             episodes.size(), getSyncPlatform().name(), id);
-        Mono<List<Episode>> episodesMono = Flux.fromStream(episodes.stream())
-            .flatMap(episodeOperate::save)
-            .collectList();
+        Mono<List<Episode>> episodesMono =
+            episodeOperate.updateEpisodesWithSubjectId(subjectId, episodes).collectList();;
 
         // save bgmtv tags
         Set<String> bgmTvSubTagNames = bgmTvSubject.getTags().stream()
@@ -185,19 +185,9 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
                 .map(this::convertEpisode)
                 .toList();
 
-        Mono<List<Episode>> episodesMono = Flux.fromStream(episodes.stream())
-            .flatMap(episode -> episodeOperate.findBySubjectIdAndGroupAndSequence(
-                    subjectId, episode.getGroup(), episode.getSequence())
-                .flatMap(e -> copyProperties(episode, e))
-                .switchIfEmpty(Mono.just(episode))
-                .map(e -> e.setSubjectId(subjectId))
-                .flatMap(episodeOperate::save)
-                .onErrorResume(RuntimeException.class, e -> {
-                    log.warn("merge single episode fail: ", e);
-                    return Mono.empty();
-                })
-            )
-            .collectList();
+        Mono<List<Episode>> episodesMono =
+            episodeOperate.updateEpisodesWithSubjectId(subjectId, episodes).collectList();
+
 
         // save subject sync entity
         SubjectSync subjectSync = SubjectSync.builder()
