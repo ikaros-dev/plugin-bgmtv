@@ -1,7 +1,5 @@
 package run.ikaros.plugin.bgmtv;
 
-import static run.ikaros.api.infra.utils.ReactiveBeanUtils.copyProperties;
-
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -11,35 +9,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.pf4j.Extension;
-import org.springframework.core.io.buffer.DataBufferFactory;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import org.springframework.util.Assert;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import run.ikaros.api.core.attachment.Attachment;
-import run.ikaros.api.core.attachment.AttachmentConst;
 import run.ikaros.api.core.attachment.AttachmentOperate;
-import run.ikaros.api.core.attachment.AttachmentUploadCondition;
+import run.ikaros.api.core.character.Character;
+import run.ikaros.api.core.person.Person;
 import run.ikaros.api.core.subject.Episode;
-import run.ikaros.api.core.subject.EpisodeOperate;
 import run.ikaros.api.core.subject.Subject;
-import run.ikaros.api.core.subject.SubjectSync;
-import run.ikaros.api.core.subject.SubjectSyncPlatformOperate;
 import run.ikaros.api.core.subject.SubjectSynchronizer;
 import run.ikaros.api.core.tag.Tag;
-import run.ikaros.api.core.tag.TagOperate;
-import run.ikaros.api.infra.utils.FileUtils;
-import run.ikaros.api.infra.utils.ReactiveBeanUtils;
 import run.ikaros.api.store.enums.EpisodeGroup;
 import run.ikaros.api.store.enums.SubjectSyncPlatform;
 import run.ikaros.api.store.enums.SubjectType;
-import run.ikaros.api.store.enums.TagType;
 import run.ikaros.plugin.bgmtv.model.BgmTvEpisode;
 import run.ikaros.plugin.bgmtv.model.BgmTvEpisodeType;
 import run.ikaros.plugin.bgmtv.model.BgmTvSubject;
@@ -53,202 +35,74 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
 
     private final BgmTvRepository bgmTvRepository;
     private final AttachmentOperate attachmentOperate;
-    private final TagOperate tagOperate;
-    private final EpisodeOperate episodeOperate;
-    private final SubjectSyncPlatformOperate syncOperate;
+
+    private ThreadLocal<BgmTvSubject> subjectThreadLocal = new ThreadLocal<>();
 
     public BgmTvSubjectSynchronizer(BgmTvRepository bgmTvRepository,
-                                    AttachmentOperate attachmentOperate, TagOperate tagOperate,
-                                    EpisodeOperate episodeOperate,
-                                    SubjectSyncPlatformOperate syncOperate) {
+                                    AttachmentOperate attachmentOperate) {
         this.bgmTvRepository = bgmTvRepository;
         this.attachmentOperate = attachmentOperate;
-        this.tagOperate = tagOperate;
-        this.episodeOperate = episodeOperate;
-        this.syncOperate = syncOperate;
     }
+
 
     @Override
     public SubjectSyncPlatform getSyncPlatform() {
         return SubjectSyncPlatform.BGM_TV;
     }
 
-
     @Override
-    public synchronized Mono<Subject> pull(String id) {
-        Assert.hasText(id, "bgmtv id must has text.");
-
-        if (id.startsWith("https://")) {
-            id = id.replace("https://bgm.tv/subject/", "");
-        }
-        final Long subjectId = Long.valueOf(id);
-
-        BgmTvSubject bgmTvSubject = bgmTvRepository.getSubject(Long.valueOf(id));
-        if (bgmTvSubject == null || bgmTvSubject.getId() == null) {
-            log.warn("Pull bgmtv subject is null, skip operate.");
-            return Mono.empty();
-        }
-
-        Subject subject =
-            convert(Objects.requireNonNull(bgmTvSubject));
-        if (Objects.isNull(subject)) {
-            log.warn("Pull subject is null, skip operate.");
-            return Mono.empty();
-        }
-
-        log.info("Pull subject:[{}] by platform:[{}] and id:[{}]",
-            subject.getName(), getSyncPlatform().name(), id);
-
-        List<Episode> episodes =
-            bgmTvRepository.findEpisodesBySubjectId(Long.valueOf(id), null,
-                    null, null)
-                .stream()
-                .map(bgmTvEpisode -> SubjectType.MUSIC.equals(subject.getType()) ?
-                    convertMusicEpisode(bgmTvEpisode) : convertEpisode(bgmTvEpisode))
-                .map(episode -> episode.setSubjectId(subject.getId()))
-                .toList();
-        log.info("Pull episode count:[{}] by platform:[{}] and id:[{}]",
-            episodes.size(), getSyncPlatform().name(), id);
-        Mono<List<Episode>> episodesMono =
-            episodeOperate.updateEpisodesWithSubjectId(subjectId, episodes).collectList();;
-
-        // save bgmtv tags
-        Set<String> bgmTvSubTagNames = bgmTvSubject.getTags().stream()
-            .map(BgmTvTag::getName).collect(Collectors.toSet());
-        Mono<List<Tag>> tagsMono =
-            episodesMono.thenMany(Flux.fromStream(bgmTvSubTagNames.parallelStream()))
-                .map(tagName -> Tag.builder()
-                    .createTime(LocalDateTime.now())
-                    .type(TagType.SUBJECT)
-                    .masterId(subject.getId())
-                    .name(tagName)
-                    .userId(-1L)
-                    .build())
-                .flatMap(tagOperate::create)
-                .collectList();
-
-        // save subject sync entity
-        SubjectSync subjectSync = SubjectSync.builder()
-            .platform(getSyncPlatform())
-            .platformId(id)
-            .subjectId(subject.getId())
-            .syncTime(LocalDateTime.now())
-            .build();
-        Mono<SubjectSync> syncMono = tagsMono.then(syncOperate.save(subjectSync));
-
-        // download cover image and update url
-        if (StringUtils.isNotBlank(subject.getCover())
-            && subject.getCover().startsWith("http")) {
-            String coverUrl = subject.getCover();
-            String coverFileName = StringUtils.isNotBlank(subject.getNameCn())
-                ? subject.getNameCn() : subject.getName();
-            coverFileName =
-                System.currentTimeMillis() + "-" + coverFileName
-                    + "." + FileUtils.parseFilePostfix(FileUtils.parseFileName(coverUrl));
-            byte[] bytes = bgmTvRepository.downloadCover(coverUrl);
-            DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
-            return syncMono.then(attachmentOperate.upload(AttachmentUploadCondition.builder()
-                    .parentId(AttachmentConst.COVER_DIRECTORY_ID)
-                    .name(coverFileName).dataBufferFlux(Mono.just(dataBufferFactory.wrap(bytes)).flux())
-                    .build()))
-                .map(Attachment::getUrl)
-                .map(subject::setCover);
-        }
-
-        return syncMono.then(Mono.just(subject));
-    }
-
-    @Override
-    public Mono<Subject> merge(Subject subject, String platformId) {
-        Assert.notNull(subject, "subject must not null.");
-        Assert.hasText(platformId, "bgmtv id must has text.");
-        final Long subjectId = subject.getId();
-
-        // search bgmtv subject info
+    public Subject fetchSubjectWithPlatformId(String platformId) {
         BgmTvSubject bgmTvSubject = bgmTvRepository.getSubject(Long.valueOf(platformId));
-        if (bgmTvSubject == null || bgmTvSubject.getId() == null) {
-            log.warn("Pull subject is null, skip operate.");
-            return Mono.empty();
+        subjectThreadLocal.set(bgmTvSubject);
+        if (Objects.isNull(bgmTvSubject)) {
+            return null;
         }
-
-        // merge bgmtv subject
-        subject = mergeBgmTvSubject(subject, bgmTvSubject);
-        log.info("Merge subject:[{}] by platform:[{}] and id:[{}]",
-            Objects.requireNonNull(subject).getName(), getSyncPlatform().name(), platformId);
-
-
-        // merge bgmtv subject episodes
-        List<Episode> episodes =
-            bgmTvRepository.findEpisodesBySubjectId(Long.valueOf(platformId), null,
-                    null, null)
-                .stream()
-                .map(this::convertEpisode)
-                .toList();
-
-        Mono<List<Episode>> episodesMono =
-            episodeOperate.updateEpisodesWithSubjectId(subjectId, episodes).collectList();
-
-
-        // save subject sync entity
-        SubjectSync subjectSync = SubjectSync.builder()
-            .platform(getSyncPlatform())
-            .platformId(platformId)
-            .subjectId(subjectId)
-            .syncTime(LocalDateTime.now())
-            .build();
-        Mono<SubjectSync> syncMono =
-            episodesMono.then(syncOperate.findBySubjectIdAndPlatformAndPlatformId(
-                    subjectId, getSyncPlatform(), platformId))
-                .switchIfEmpty(syncOperate.save(subjectSync));
-
-        DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
-        // merge tags
-        return syncMono.thenMany(tagOperate.findAll(TagType.SUBJECT, subject.getId(), null))
-            .map(Tag::getName)
-            .filter(StringUtils::isNotBlank)
-            .collect(Collectors.toSet())
-            .flatMapMany(existsTags ->
-                Flux.fromStream(bgmTvSubject.getTags().parallelStream())
-                    .map(BgmTvTag::getName)
-                    .filter(bgmTvTagName -> !existsTags.contains(bgmTvTagName))
-            )
-            .map(name -> Tag.builder()
-                .type(TagType.SUBJECT)
-                .masterId(Long.valueOf(bgmTvSubject.getId()))
-                .name(name)
-                .createTime(LocalDateTime.now())
-                .userId(-1L)
-                .build())
-            .flatMap(tagOperate::create)
-            .collectList()
-            // merge cover
-            .then(Mono.just(subject))
-            .filter(sub -> StringUtils.isBlank(sub.getCover()))
-            .filter(cover -> StringUtils.isNotBlank(bgmTvSubject.getImages().getLarge()))
-            .map(cover -> bgmTvSubject.getImages().getLarge())
-            .map(bgmTvRepository::downloadCover)
-            .map(bytes -> AttachmentUploadCondition.builder()
-                .parentId(AttachmentConst.COVER_DIRECTORY_ID)
-                .name(
-                    System.currentTimeMillis()
-                        + "-" + (StringUtils.isNotBlank(bgmTvSubject.getNameCn())
-                        ? bgmTvSubject.getNameCn() : bgmTvSubject.getName())
-                        + "." + FileUtils.parseFilePostfix(
-                        FileUtils.parseFileName(bgmTvSubject.getImages().getLarge()))
-                )
-                .dataBufferFlux(Mono.just(dataBufferFactory.wrap(bytes)).flux())
-                .build())
-            .flatMap(attachmentOperate::upload)
-            .map(Attachment::getUrl)
-            .map(subject::setCover)
-
-            .then(Mono.just(subject));
+        return new Subject()
+            .setId(Long.valueOf(String.valueOf(bgmTvSubject.getId())))
+            .setType(convertType(bgmTvSubject.getType(), bgmTvSubject.getPlatform()))
+            .setName(bgmTvSubject.getName())
+            .setNameCn(StringUtils.isNotBlank(bgmTvSubject.getNameCn())
+                ? bgmTvSubject.getNameCn() : bgmTvSubject.getName())
+            .setInfobox(bgmTvSubject.getInfobox())
+            .setSummary(bgmTvSubject.getSummary())
+            .setNsfw(bgmTvSubject.getNsfw())
+            .setAirTime(convertAirTime(
+                Objects.nonNull(bgmTvSubject.getDate()) ? bgmTvSubject.getDate() : "1999-09-09"))
+            .setCover(bgmTvSubject.getImages().getLarge());
     }
 
     @Override
-    public Mono<Subject> pullSelfAndRelations(String s) {
-        // TODO pull self and all relations
-        return Mono.empty();
+    public List<Episode> fetchEpisodesWithPlatformId(String platformId) {
+        BgmTvSubject bgmTvSubject = subjectThreadLocal.get();
+        return bgmTvRepository.findEpisodesBySubjectId(Long.valueOf(platformId), null,
+                null, null)
+            .stream()
+            .map(bgmTvEpisode -> bgmTvSubject.getType() == 3 ?
+                convertMusicEpisode(bgmTvEpisode) : convertEpisode(bgmTvEpisode))
+            .toList();
+    }
+
+    @Override
+    public List<Tag> fetchTagsWithPlatformId(String platformId) {
+        BgmTvSubject bgmTvSubject = subjectThreadLocal.get();
+        return bgmTvSubject.getTags().stream()
+            .map(BgmTvTag::getName)
+            .map(name -> Tag.builder()
+                .name(name)
+                .build())
+            .toList();
+    }
+
+    @Override
+    public List<Person> fetchPersonsWithPlatformId(String platformId) {
+        // TODO 条目人物相关
+        return List.of();
+    }
+
+    @Override
+    public List<Character> fetchCharactersWithPlatformId(String platformId) {
+        // TODO 条目角色相关
+        return List.of();
     }
 
     private Subject mergeBgmTvSubject(Subject subject, BgmTvSubject bgmTvSubject) {
@@ -333,25 +187,6 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
             .setAirTime(convertAirTime(bgmTvEpisode.getAirDate()))
             .setGroup(convertEpisodeType(bgmTvEpisode.getType()))
             .setSequence(originalSeq);
-    }
-
-
-    private Subject convert(BgmTvSubject bgmTvSubject) {
-        if (Objects.isNull(bgmTvSubject)) {
-            return null;
-        }
-        return new Subject()
-            .setId(Long.valueOf(String.valueOf(bgmTvSubject.getId())))
-            .setType(convertType(bgmTvSubject.getType(), bgmTvSubject.getPlatform()))
-            .setName(bgmTvSubject.getName())
-            .setNameCn(StringUtils.isNotBlank(bgmTvSubject.getNameCn())
-                ? bgmTvSubject.getNameCn() : bgmTvSubject.getName())
-            .setInfobox(bgmTvSubject.getInfobox())
-            .setSummary(bgmTvSubject.getSummary())
-            .setNsfw(bgmTvSubject.getNsfw())
-            .setAirTime(convertAirTime(
-                Objects.nonNull(bgmTvSubject.getDate()) ? bgmTvSubject.getDate() : "1999-09-09"))
-            .setCover(bgmTvSubject.getImages().getLarge());
     }
 
 

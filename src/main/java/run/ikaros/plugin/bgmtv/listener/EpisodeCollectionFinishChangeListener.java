@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import run.ikaros.api.core.collection.SubjectCollection;
 import run.ikaros.api.core.collection.SubjectCollectionOperate;
@@ -15,7 +14,7 @@ import run.ikaros.api.core.subject.EpisodeOperate;
 import run.ikaros.api.core.subject.Subject;
 import run.ikaros.api.core.subject.SubjectOperate;
 import run.ikaros.api.core.subject.SubjectSync;
-import run.ikaros.api.core.subject.SubjectSyncPlatformOperate;
+import run.ikaros.api.core.subject.SubjectSyncOperate;
 import run.ikaros.api.custom.ReactiveCustomClient;
 import run.ikaros.api.infra.exception.NotFoundException;
 import run.ikaros.api.store.enums.CollectionType;
@@ -32,20 +31,20 @@ public class EpisodeCollectionFinishChangeListener {
     private final ReactiveCustomClient customClient;
     private final SubjectCollectionOperate subjectCollectionOperate;
     private final EpisodeOperate episodeOperate;
-    private final SubjectSyncPlatformOperate syncPlatformOperate;
+    private final SubjectSyncOperate subjectSyncOperate;
 
     public EpisodeCollectionFinishChangeListener(SubjectOperate subjectOperate,
                                                  BgmTvRepository bgmTvRepository,
                                                  ReactiveCustomClient customClient,
                                                  SubjectCollectionOperate subjectCollectionOperate,
                                                  EpisodeOperate episodeOperate,
-                                                 SubjectSyncPlatformOperate syncPlatformOperate) {
+                                                 SubjectSyncOperate subjectSyncOperate) {
         this.subjectOperate = subjectOperate;
         this.bgmTvRepository = bgmTvRepository;
         this.customClient = customClient;
         this.subjectCollectionOperate = subjectCollectionOperate;
         this.episodeOperate = episodeOperate;
-        this.syncPlatformOperate = syncPlatformOperate;
+        this.subjectSyncOperate = subjectSyncOperate;
     }
 
     public Mono<Boolean> getConfigMapIsSync() {
@@ -58,12 +57,12 @@ public class EpisodeCollectionFinishChangeListener {
 
     private Mono<Boolean> getConfigMap(String key) {
         return customClient.findOne(ConfigMap.class, BgmTvPlugin.NAME)
-                .onErrorResume(NotFoundException.class, e -> Mono.empty())
-                .map(ConfigMap::getData)
-                .map(configMap ->
-                        StringUtils.isNotBlank(configMap.get(key))
-                                && Boolean.TRUE.toString()
-                                .equalsIgnoreCase(configMap.get(key)));
+            .onErrorResume(NotFoundException.class, e -> Mono.empty())
+            .map(ConfigMap::getData)
+            .map(configMap ->
+                StringUtils.isNotBlank(configMap.get(key))
+                    && Boolean.TRUE.toString()
+                    .equalsIgnoreCase(configMap.get(key)));
     }
 
     @EventListener(EpisodeCollectionFinishChangeEvent.class)
@@ -75,17 +74,17 @@ public class EpisodeCollectionFinishChangeListener {
         final long userId = event.getUserId();
 
         getConfigMapIsSync()
-                .filter(isSync -> isSync)
-                .flatMap(isSync -> getDoingBgmDoTvSubId(subjectId, userId))
-                .subscribe(bgmTvSub -> getSubjectEpsSeq(episodeId, subjectId)
-                        .subscribe(seq -> getConfigMapNsfwIsPrivate()
-                                .flatMap(nsfwPrivate -> subjectOperate.findById(subjectId)
-                                        .map(Subject::getNsfw)
-                                        .map(nsfw -> nsfw && nsfwPrivate))
-                                .subscribe(
-                                        isPrivate ->
-                                                bgmTvRepository.putUserEpisodeCollection(bgmTvSub, seq,
-                                                        finish, isPrivate))));
+            .filter(isSync -> isSync)
+            .flatMap(isSync -> getDoingBgmDoTvSubId(subjectId, userId))
+            .subscribe(bgmTvSub -> getSubjectEpsSeq(episodeId, subjectId)
+                .subscribe(seq -> getConfigMapNsfwIsPrivate()
+                    .flatMap(nsfwPrivate -> subjectOperate.findById(subjectId)
+                        .map(Subject::getNsfw)
+                        .map(nsfw -> nsfw && nsfwPrivate))
+                    .subscribe(
+                        isPrivate ->
+                            bgmTvRepository.putUserEpisodeCollection(bgmTvSub, seq,
+                                finish, isPrivate))));
     }
 
 
@@ -103,7 +102,7 @@ public class EpisodeCollectionFinishChangeListener {
         return subjectCollectionOperate.findCollection(userId, subjectId)
             .map(SubjectCollection::getType)
             .filter(CollectionType.DOING::equals)
-            .flatMap(doing -> syncPlatformOperate.findSubjectSyncBySubjectIdAndPlatform(
+            .flatMap(doing -> subjectSyncOperate.findSubjectSyncBySubjectIdAndPlatform(
                 subjectId, SubjectSyncPlatform.BGM_TV
             ))
             .map(SubjectSync::getPlatformId);

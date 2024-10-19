@@ -1,9 +1,9 @@
 package run.ikaros.plugin.bgmtv.listener;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import run.ikaros.api.core.collection.SubjectCollection;
 import run.ikaros.api.core.collection.event.SubjectCollectEvent;
@@ -11,7 +11,7 @@ import run.ikaros.api.core.setting.ConfigMap;
 import run.ikaros.api.core.subject.Subject;
 import run.ikaros.api.core.subject.SubjectOperate;
 import run.ikaros.api.core.subject.SubjectSync;
-import run.ikaros.api.core.subject.SubjectSyncPlatformOperate;
+import run.ikaros.api.core.subject.SubjectSyncOperate;
 import run.ikaros.api.custom.ReactiveCustomClient;
 import run.ikaros.api.infra.exception.NotFoundException;
 import run.ikaros.api.store.enums.CollectionType;
@@ -20,24 +20,22 @@ import run.ikaros.plugin.bgmtv.BgmTvPlugin;
 import run.ikaros.plugin.bgmtv.model.BgmTVSubCollectionType;
 import run.ikaros.plugin.bgmtv.repository.BgmTvRepository;
 
-import lombok.extern.slf4j.Slf4j;
-
 @Slf4j
 @Component
 public class SubjectCollectListener {
     private final BgmTvRepository bgmTvRepository;
     private final SubjectOperate subjectOperate;
     private final ReactiveCustomClient customClient;
-    private final SubjectSyncPlatformOperate syncPlatformOperate;
+    private final SubjectSyncOperate subjectSyncOperate;
 
 
     public SubjectCollectListener(BgmTvRepository bgmTvRepository, SubjectOperate subjectOperate,
                                   ReactiveCustomClient customClient,
-                                  SubjectSyncPlatformOperate syncPlatformOperate) {
+                                  SubjectSyncOperate subjectSyncOperate) {
         this.bgmTvRepository = bgmTvRepository;
         this.subjectOperate = subjectOperate;
         this.customClient = customClient;
-        this.syncPlatformOperate = syncPlatformOperate;
+        this.subjectSyncOperate = subjectSyncOperate;
     }
 
     public Mono<Boolean> getConfigMapIsSync() {
@@ -68,7 +66,7 @@ public class SubjectCollectListener {
             convertToBgmTvSubCollectionType(collectionType);
         getConfigMapIsSync()
             .filter(isSync -> isSync)
-            .flatMap(isSync -> syncPlatformOperate.findSubjectSyncBySubjectIdAndPlatform(
+            .flatMap(isSync -> subjectSyncOperate.findSubjectSyncBySubjectIdAndPlatform(
                 subjectId, SubjectSyncPlatform.BGM_TV
             )).map(SubjectSync::getPlatformId)
 
