@@ -2,6 +2,10 @@
 
 更新日志文档，版本顺序从新到旧，最新版本在最前(上)面。
 
+# 1.1.5
+
+- ci to actions/setup-java@v4
+
 # 1.1.4
 
 - build: ci jdk to 21
