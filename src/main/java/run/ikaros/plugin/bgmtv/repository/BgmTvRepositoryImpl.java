@@ -241,7 +241,7 @@ public class BgmTvRepositoryImpl
 
         // https://api.bgm.tv/v0/search/subjects?limit=50&offset=1
         UriComponentsBuilder uriComponentsBuilder =
-            UriComponentsBuilder.fromHttpUrl(BgmTvApiConst.NEXT_SEARCH_SUBJECTS)
+            UriComponentsBuilder.fromUriString(BgmTvApiConst.NEXT_SEARCH_SUBJECTS)
                 .queryParam("limit", limit)
                 .queryParam("offset", offset);
 
@@ -272,7 +272,7 @@ public class BgmTvRepositoryImpl
         Assert.hasText(keyword, "'keyword' must has text");
         // https://api.bgm.tv/search/subject/air?type=2&responseGroup=large
         UriComponentsBuilder uriComponentsBuilder =
-            UriComponentsBuilder.fromHttpUrl(BgmTvApiConst.OLD_SEARCH_SUBJECT + "/" + keyword)
+            UriComponentsBuilder.fromUriString(BgmTvApiConst.OLD_SEARCH_SUBJECT + "/" + keyword)
                 .queryParam("responseGroup", "large");
 
         if (type != null) {
@@ -328,7 +328,7 @@ public class BgmTvRepositoryImpl
         }
         // https://api.bgm.tv/v0/episodes?subject_id=373267&type=0&limit=100&offset=0
         UriComponentsBuilder uriComponentsBuilder =
-            UriComponentsBuilder.fromHttpUrl(BgmTvApiConst.EPISODES)
+            UriComponentsBuilder.fromUriString(BgmTvApiConst.EPISODES)
                 .queryParam("subject_id", subjectId)
                 .queryParam("limit", limit)
                 .queryParam("offset", offset);

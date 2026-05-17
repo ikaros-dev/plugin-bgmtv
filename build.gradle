@@ -24,7 +24,7 @@ dependencies {
     compileOnly "org.springframework:spring-context:$springContext"
     compileOnly "org.pf4j:pf4j:$pf4j"
     compileOnly "io.projectreactor:reactor-core:3.5.1"
-    compileOnly "org.springframework:spring-webflux:6.0.3"
+    compileOnly "org.springframework:spring-webflux:7.0.7"
     compileOnly "org.springdoc:springdoc-openapi-starter-webflux-api:2.0.2"
     compileOnly 'jakarta.annotation:jakarta.annotation-api:2.1.1'
     compileOnly 'org.springframework.retry:spring-retry:2.0.2'
