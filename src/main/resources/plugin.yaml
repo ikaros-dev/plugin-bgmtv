@@ -4,12 +4,12 @@ name: PluginBgmTv
 # plugin entry class that extends BasePlugin
 clazz: run.ikaros.plugin.bgmtv.BgmTvPlugin
 # plugin 'version' is a valid semantic version string (see semver.org).
-version: 1.1.0
-requires: ">=1.0.7"
+version: 1.1.1
+requires: ">=1.1.0"
 author:
   name: Ikaros OSS Team
   website: https://github.com/ikaros-dev
-logo: https://ikaros.run/logo.png
+logo: https://imgbed.ikaros.run/file/posts/1779018237740_icon.png
 homepage: https://github.com/ikaros-dev/plugin-bgmtv
 displayName: "番组计划"
 description: "番组计划(bgm.tv)插件，拓展条目和集合同步等功能。"
