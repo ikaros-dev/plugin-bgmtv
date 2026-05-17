@@ -65,7 +65,7 @@ task buildFrontend(type: NpxTask) {
 
 task pnpmInstall(type: NpxTask) {
     command = "pnpm"
-    args = ["install"]
+    args = ["install", "-f"]
 }
 
 build {

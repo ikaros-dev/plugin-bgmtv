@@ -1,5 +1,6 @@
 package run.ikaros.plugin.bgmtv.listener;
 
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.event.EventListener;
@@ -60,7 +61,7 @@ public class SubjectCollectListener {
     public void onSubjectCollectEvent(SubjectCollectEvent event) {
         log.debug("Receive SubjectCollectEvent: {}", event);
         SubjectCollection subjectCollection = event.getSubjectCollection();
-        final Long subjectId = subjectCollection.getSubjectId();
+        final UUID subjectId = subjectCollection.getSubjectId();
         final CollectionType collectionType = subjectCollection.getType();
         final BgmTVSubCollectionType bgmTVSubCollectionType =
             convertToBgmTvSubCollectionType(collectionType);

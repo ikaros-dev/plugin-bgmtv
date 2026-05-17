@@ -19,6 +19,7 @@ import run.ikaros.api.core.subject.Episode;
 import run.ikaros.api.core.subject.Subject;
 import run.ikaros.api.core.subject.SubjectSynchronizer;
 import run.ikaros.api.core.tag.Tag;
+import run.ikaros.api.infra.utils.UuidV7Utils;
 import run.ikaros.api.store.enums.EpisodeGroup;
 import run.ikaros.api.store.enums.SubjectSyncPlatform;
 import run.ikaros.api.store.enums.SubjectType;
@@ -58,7 +59,7 @@ public class BgmTvSubjectSynchronizer implements SubjectSynchronizer {
             return null;
         }
         return new Subject()
-            .setId(Long.valueOf(String.valueOf(bgmTvSubject.getId())))
+            .setId(UuidV7Utils.generateUuid())
             .setType(convertType(bgmTvSubject.getType(), bgmTvSubject.getPlatform()))
             .setName(bgmTvSubject.getName())
             .setNameCn(StringUtils.isNotBlank(bgmTvSubject.getNameCn())

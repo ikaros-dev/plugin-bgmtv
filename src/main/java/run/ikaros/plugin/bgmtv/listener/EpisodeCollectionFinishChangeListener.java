@@ -1,5 +1,6 @@
 package run.ikaros.plugin.bgmtv.listener;
 
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.event.EventListener;
@@ -68,10 +69,10 @@ public class EpisodeCollectionFinishChangeListener {
     @EventListener(EpisodeCollectionFinishChangeEvent.class)
     public synchronized void onApplicationReadyEvent(EpisodeCollectionFinishChangeEvent event) {
         log.debug("Receive EpisodeCollectionFinishChangeEvent: {}", event);
-        final long episodeId = event.getEpisodeId();
+        final UUID episodeId = event.getEpisodeId();
         final boolean finish = event.isFinish();
-        final long subjectId = event.getSubjectId();
-        final long userId = event.getUserId();
+        final UUID subjectId = event.getSubjectId();
+        final UUID userId = event.getUserId();
 
         getConfigMapIsSync()
             .filter(isSync -> isSync)
@@ -88,7 +89,7 @@ public class EpisodeCollectionFinishChangeListener {
     }
 
 
-    private Mono<Float> getSubjectEpsSeq(Long episodeId, Long subjectId) {
+    private Mono<Float> getSubjectEpsSeq(UUID episodeId, UUID subjectId) {
         return episodeOperate.findAllBySubjectId(subjectId)
             .filter(episode -> EpisodeGroup.MAIN.equals(episode.getGroup()))
             .filter(episode -> episodeId.equals(episode.getId()))
@@ -98,7 +99,7 @@ public class EpisodeCollectionFinishChangeListener {
             .map(sequences -> sequences.get(0));
     }
 
-    private Mono<String> getDoingBgmDoTvSubId(Long subjectId, Long userId) {
+    private Mono<String> getDoingBgmDoTvSubId(UUID subjectId, UUID userId) {
         return subjectCollectionOperate.findCollection(userId, subjectId)
             .map(SubjectCollection::getType)
             .filter(CollectionType.DOING::equals)
