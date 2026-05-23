@@ -15,7 +15,7 @@ ext {
     springContext = '6.0.3'
     pf4j = '3.8.0'
     lombok = '1.18.34'
-    coreLibJar = 'lib/api-1.1.0.jar'
+    coreLibJar = 'lib/api-1.1.13.jar'
 }
 
 
@@ -34,7 +34,7 @@ dependencies {
     testImplementation "org.springframework:spring-context:$springContext"
     testImplementation "org.pf4j:pf4j:$pf4j"
     testImplementation "io.projectreactor:reactor-core:3.5.1"
-    testImplementation "org.springframework:spring-webflux:6.0.3"
+    testImplementation "org.springframework:spring-webflux:7.0.7"
     testImplementation "org.springdoc:springdoc-openapi-starter-webflux-api:2.0.2"
     testImplementation 'jakarta.annotation:jakarta.annotation-api:2.1.1'
     testImplementation 'org.springframework.retry:spring-retry:2.0.2'
