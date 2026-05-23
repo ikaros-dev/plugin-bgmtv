@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
@@ -15,13 +16,18 @@ import run.ikaros.api.core.meta.DelegateMetaService;
 import run.ikaros.api.core.meta.MetaInfoExtensionPoint;
 import run.ikaros.api.core.subject.Episode;
 import run.ikaros.api.core.subject.Subject;
+import run.ikaros.api.core.subject.SubjectRecord;
+import run.ikaros.api.core.subject.SubjectSync;
+import run.ikaros.api.core.tag.Tag;
 import run.ikaros.api.infra.utils.UuidV7Utils;
 import run.ikaros.api.store.enums.EpisodeGroup;
 import run.ikaros.api.store.enums.SubjectSyncPlatform;
 import run.ikaros.api.store.enums.SubjectType;
+import run.ikaros.api.store.enums.TagType;
 import run.ikaros.plugin.bgmtv.model.BgmTvEpisode;
 import run.ikaros.plugin.bgmtv.model.BgmTvEpisodeType;
 import run.ikaros.plugin.bgmtv.model.BgmTvSubject;
+import run.ikaros.plugin.bgmtv.model.BgmTvTag;
 import run.ikaros.plugin.bgmtv.repository.BgmTvRepository;
 import run.ikaros.plugin.bgmtv.utils.AssertUtils;
 
@@ -40,8 +46,17 @@ public class BgmTvMetaService implements MetaInfoExtensionPoint {
         return SubjectSyncPlatform.BGM_TV;
     }
 
+    private SubjectSync convertSubjectSync(String platformId) {
+        return new SubjectSync()
+            .setId(UuidV7Utils.generateUuid())
+            .setSubjectId(UuidV7Utils.generateUuid())
+            .setPlatform(getPlatform())
+            .setPlatformId(platformId)
+            .setSyncTime(LocalDateTime.now());
+    }
+
     @Override
-    public Flux<Subject> searchSubjects(String keyword) {
+    public Flux<SubjectRecord> searchSubjects(String keyword) {
         List<BgmTvSubject> bgmTvSubjects = bgmTvRepository.searchSubjectWithOldApi(keyword, 2);
         if (bgmTvSubjects != null && !bgmTvSubjects.isEmpty()) {
             return Flux.fromIterable(bgmTvSubjects)
@@ -51,7 +66,7 @@ public class BgmTvMetaService implements MetaInfoExtensionPoint {
     }
 
     @Override
-    public Mono<Subject> getSubjectByPlatformId(String platformId) {
+    public Mono<SubjectRecord> getSubjectByPlatformId(String platformId) {
         BgmTvSubject bgmTvSubject = bgmTvRepository.getSubject(Long.parseLong(platformId));
         if (bgmTvSubject != null) {
             return Mono.just(convertSubject(bgmTvSubject));
@@ -59,33 +74,31 @@ public class BgmTvMetaService implements MetaInfoExtensionPoint {
         return Mono.empty();
     }
 
-    @Override
-    public Flux<Episode> getEpisodesByPlatformId(String platformId) {
-        List<BgmTvEpisode> episodes = bgmTvRepository.findEpisodesBySubjectId(
-            Long.parseLong(platformId),
-            BgmTvEpisodeType.POSITIVE,
-            null,
-            null);
-        if (episodes != null && !episodes.isEmpty()) {
-            return Flux.fromIterable(episodes)
-                .map(this::convertEpisode);
-        }
-        return Flux.empty();
-    }
 
-    @Override
-    public Flux<String> getTagsByPlatformId(String platformId) {
-        throw new UnsupportedOperationException();
-    }
-
-    private Subject convertSubject(BgmTvSubject bgmTvSubject) {
-        return new Subject()
+    private SubjectRecord convertSubject(BgmTvSubject bgmTvSubject) {
+        Subject subject = new Subject()
             .setId(UuidV7Utils.generateUuid())
             .setType(convertType(bgmTvSubject.getType(), bgmTvSubject.getPlatform()))
             .setName(bgmTvSubject.getName())
             .setNameCn(StringUtils.isNotBlank(bgmTvSubject.getNameCn())
                 ? bgmTvSubject.getNameCn() : bgmTvSubject.getName())
             .setInfobox(bgmTvSubject.getInfobox());
+        SubjectSync subjectSync = convertSubjectSync(bgmTvSubject.getId().toString());
+        List<SubjectSync> subjectSyncs = List.of(subjectSync);
+        List<BgmTvTag> bgmTvSubjectTags = bgmTvSubject.getTags();
+        List<Tag> tags = new ArrayList<>();
+        if (bgmTvSubjectTags != null) {
+            tags.addAll(bgmTvSubjectTags
+                .stream().map(bgmTvTag -> new Tag()
+                    .setId(UuidV7Utils.generateUuid())
+                    .setName(bgmTvTag.getName())
+                    .setType(TagType.SUBJECT)
+                    .setMasterId(subject.getId())
+                    .setCreateTime(LocalDateTime.now())
+                ).toList());
+        }
+
+        return new SubjectRecord(subject, null, tags, subjectSyncs, null);
     }
 
     private Episode convertEpisode(BgmTvEpisode bgmTvEpisode) {
