@@ -67,7 +67,7 @@ task buildFrontend(type: Exec) {
 
 task pnpmInstall(type: Exec) {
     workingDir = file("${project.projectDir}/console")
-    commandLine pnpmExecutable, 'install', '-f'
+    commandLine pnpmExecutable, 'install'
 }
 
 build {
