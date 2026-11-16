@@ -58,14 +58,16 @@ node {
     nodeProjectDir = file("${project.projectDir}/console")
 }
 
+def pnpmExecutable = System.getProperty('os.name').toLowerCase().contains('windows') ? 'pnpm.cmd' : 'pnpm'
+
 task buildFrontend(type: Exec) {
     workingDir = file("${project.projectDir}/console")
-    commandLine 'pnpm.cmd', 'run', 'build'
+    commandLine pnpmExecutable, 'run', 'build'
 }
 
 task pnpmInstall(type: Exec) {
     workingDir = file("${project.projectDir}/console")
-    commandLine 'pnpm.cmd', 'install', '-f'
+    commandLine pnpmExecutable, 'install', '-f'
 }
 
 build {
