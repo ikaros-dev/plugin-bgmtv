@@ -58,14 +58,14 @@ node {
     nodeProjectDir = file("${project.projectDir}/console")
 }
 
-task buildFrontend(type: NpxTask) {
-    command = 'pnpm'
-    args = ['build']
+task buildFrontend(type: Exec) {
+    workingDir = file("${project.projectDir}/console")
+    commandLine 'pnpm.cmd', 'run', 'build'
 }
 
-task pnpmInstall(type: NpxTask) {
-    command = "pnpm"
-    args = ["install", "-f"]
+task pnpmInstall(type: Exec) {
+    workingDir = file("${project.projectDir}/console")
+    commandLine 'pnpm.cmd', 'install', '-f'
 }
 
 build {
