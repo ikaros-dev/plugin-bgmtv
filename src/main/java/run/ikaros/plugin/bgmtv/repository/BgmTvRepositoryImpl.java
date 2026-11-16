@@ -115,9 +115,13 @@ public class BgmTvRepositoryImpl
                 }
                 default -> {
                     restTemplate = RestTemplateUtils.buildRestTemplate(3000, 3000);
-                    log.info("config rest template by no proxy.");
+                    log.warn("Unsupported proxy type [{}]; using no proxy.", proxyType);
                 }
             }
+        } else {
+            restTemplate = RestTemplateUtils.buildRestTemplate(3000, 3000);
+            log.warn("Proxy is enabled but its configuration is incomplete or invalid "
+                + "(type=[{}], host=[{}], port=[{}]); using no proxy.", proxyType, host, port);
         }
     }
 

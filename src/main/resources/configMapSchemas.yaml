@@ -35,6 +35,7 @@
   name: 'proxyType'
   value: '$proxyType'
   label: '选择代理类型'
+  validation: 'required'
   options:
     http: 'http'
     socks: 'socks'
