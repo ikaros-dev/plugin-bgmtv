@@ -52,15 +52,18 @@ public class RestTemplateUtils {
     ) {
         AssertUtils.notNull(proxy, "proxy");
 
-        String key = proxy.address().toString();
+        int effectiveReadTimeout = readTimeout == null ? DEFAULT_READ_TIMEOUT : readTimeout;
+        int effectiveConnectTimeout =
+            connectTimeout == null ? DEFAULT_CONNECT_TIMEOUT : connectTimeout;
+        String key = proxy.type() + "|" + proxy.address() + "|"
+            + effectiveReadTimeout + "|" + effectiveConnectTimeout;
         if (restTemplateProxyMap.containsKey(key)) {
             return restTemplateProxyMap.get(key);
         }
 
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setReadTimeout(readTimeout == null ? DEFAULT_READ_TIMEOUT : readTimeout);
-        requestFactory.setConnectTimeout(
-            connectTimeout == null ? DEFAULT_CONNECT_TIMEOUT : connectTimeout);
+        requestFactory.setReadTimeout(effectiveReadTimeout);
+        requestFactory.setConnectTimeout(effectiveConnectTimeout);
         requestFactory.setProxy(proxy);
         RestTemplate rt = new RestTemplate(requestFactory);
         restTemplateProxyMap.put(key, rt);
